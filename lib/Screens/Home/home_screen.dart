@@ -1,171 +1,153 @@
 import 'package:flutter/material.dart';
-import 'purpose_generator_screen.dart'; // <--- 1. IMPORT THE NEW SCREEN
+import 'purpose_generator_screen.dart'; // Ensure this file exists
 
-// Note: If you are pasting this into 'home_screen.dart', you might not need 'main()' here.
-// But I left it in case you are running this file standalone.
-void main() {
-  runApp(const GoalTrackerApp());
-}
-
-// 1. The Main App Application Widget
-class GoalTrackerApp extends StatelessWidget {
-  const GoalTrackerApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Define specific shades of blue for consistency
-    const Color primaryBlue = Color(0xFF1976D2); // A solid darker blue
-
-    return MaterialApp(
-      title: 'Basic Goal Tracker',
-      debugShowCheckedModeBanner: false,
-      // ---- THEME SETUP (Blue & White) ----
-      theme: ThemeData(
-        useMaterial3: true,
-        // Ensure the main background is pure white
-        scaffoldBackgroundColor: Colors.white,
-        // Define the color scheme based on blue
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryBlue,
-          brightness: Brightness.light, // Ensures light mode (white background)
-          primary: primaryBlue,
-          onPrimary: Colors.white, // Text on top of blue buttons/appbar should be white
-        ),
-        // Specific styling for the App Bar
-        appBarTheme: const AppBarTheme(
-          backgroundColor: primaryBlue,
-          foregroundColor: Colors.white, // Title text color
-          elevation: 4,
-          centerTitle: true,
-        ),
-        // Specific styling for the Floating Action Button
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: primaryBlue,
-          foregroundColor: Colors.white,
-        ),
-        // Styling for Checkboxes to match the theme
-        checkboxTheme: CheckboxThemeData(
-          fillColor: WidgetStateProperty.resolveWith<Color>((states) {
-            if (states.contains(WidgetState.selected)) {
-              return primaryBlue;
-            }
-            return Colors.grey; // Unselected outline color
-          }),
-        ),
-      ),
-      home: const HomeScreen(),
-    );
-  }
-}
-
-// 2. The Home Screen Layout
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  // Dummy data to visualize the layout
-  final List<Map<String, dynamic>> dummyGoals = const [
-    {"title": "Drink 8 glasses of water", "isDone": false},
-    {"title": "Read 20 pages", "isDone": true},
-    {"title": "Walk 10,000 steps", "isDone": false},
-    {"title": "Meditate for 10 mins", "isDone": true},
-    {"title": "Write code for 1 hour", "isDone": false},
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // Set default index to 2 so "Purpose" (the middle tab) is the Home
+  int _selectedIndex = 2;
+
+  // --- THE 5 TABS ---
+  static const List<Widget> _widgetOptions = <Widget>[
+    GoalsView(),      // Index 0
+    HabitsView(),     // Index 1
+    PurposeGeneratorScreen(), // Index 2 (HOME)
+    TasksView(),      // Index 3
+    CalendarView(),   // Index 4
   ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Top App Bar
+      // --- UNIFIED APP BAR WITH LOGO ---
       appBar: AppBar(
-        title: const Text('My Today Goals'),
+        // This puts your logo in the center of the bar
+        title: Image.asset(
+          'assets/Unwaver App Icon.png',
+          height: 40,        // Adjusts the size
+          fit: BoxFit.contain,
+        ),
+        centerTitle: true,
         
-        // <--- 2. ADDED THE AI BUTTON HERE ---
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.auto_awesome), // The "Sparkle" icon represents AI
-            tooltip: 'Purpose Coach',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const PurposeGeneratorScreen()),
-              );
-            },
-          ),
+        // White background to make the logo pop
+        backgroundColor: Colors.white,
+        elevation: 0, 
+        
+        // This ensures the "Hamburger" menu icon stays visible (Teal)
+        iconTheme: const IconThemeData(color: Colors.teal),
+      ),
+      
+      // --- MAIN DRAWER (SIDE MENU) ---
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const UserAccountsDrawerHeader(
+              decoration: BoxDecoration(color: Colors.teal),
+              accountName: Text("Nick"),
+              accountEmail: Text("unwaver.business@gmail.com"),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Text("N", style: TextStyle(fontSize: 24, color: Colors.teal)),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Account'),
+              onTap: () {
+                Navigator.pop(context); // Closes the drawer
+                // TODO: Navigate to Profile
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notifications'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+             const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                // TODO: Add Logout Logic
+              },
+            ),
+          ],
+        ),
+      ),
+
+      // --- BODY CONTENT ---
+      body: _widgetOptions.elementAt(_selectedIndex),
+
+      // --- 5-TAB BOTTOM NAVIGATION ---
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: Icon(Icons.flag_outlined), label: 'Goals'),
+          BottomNavigationBarItem(icon: Icon(Icons.repeat), label: 'Habits'),
+          BottomNavigationBarItem(icon: Icon(Icons.auto_awesome), label: 'Purpose'),
+          BottomNavigationBarItem(icon: Icon(Icons.check_box_outlined), label: 'Tasks'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Calendar'),
         ],
-        // ------------------------------------
-        
-      ),
-      // Main Body: A list view of goals
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: dummyGoals.length,
-        itemBuilder: (context, index) {
-          return GoalTile(
-            title: dummyGoals[index]['title'],
-            isCompleted: dummyGoals[index]['isDone'],
-          );
-        },
-      ),
-      // The "Add" button at the bottom right
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Placeholder action
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Add Goal Tapped (Functionality needed)'))
-          );
-        },
-        tooltip: 'Add Goal',
-        child: const Icon(Icons.add),
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.teal,
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed, // CRITICAL for 4+ items
+        onTap: _onItemTapped,
       ),
     );
   }
 }
 
-// 3. A separate widget for an individual Goal item
-class GoalTile extends StatelessWidget {
-  final String title;
-  final bool isCompleted;
-
-  const GoalTile({
-    super.key,
-    required this.title,
-    required this.isCompleted,
-  });
-
+// --- PLACEHOLDER WIDGETS FOR NEW TABS ---
+class GoalsView extends StatelessWidget {
+  const GoalsView({super.key});
   @override
   Widget build(BuildContext context) {
-    // We use a Card to give each item slight separation from the white background
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12.0),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.white, // Ensure card itself is white
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-        // The Checkbox leading the tile
-        leading: Transform.scale(
-          scale: 1.2, // Make checkbox slightly larger
-          child: Checkbox(
-            value: isCompleted,
-            // Shape it slightly rounded
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            onChanged: (bool? newValue) {
-              // NOTE: Since this is a StatelessWidget, tapping this won't change
-              // the UI visually yet. You would need a StatefulWidget for that.
-            },
-          ),
-        ),
-        // The Goal Title text
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 16.0,
-            fontWeight: FontWeight.w500,
-            // If completed, strike-through and grey out the text
-            decoration: isCompleted ? TextDecoration.lineThrough : null,
-            color: isCompleted ? Colors.grey.shade400 : Colors.black87,
-          ),
-        ),
-      ),
-    );
+    return const Center(child: Text("Goals Tracker Coming Soon"));
+  }
+}
+
+class HabitsView extends StatelessWidget {
+  const HabitsView({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text("Habits Tracker Coming Soon"));
+  }
+}
+
+class TasksView extends StatelessWidget {
+  const TasksView({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text("Tasks Manager Coming Soon"));
+  }
+}
+
+class CalendarView extends StatelessWidget {
+  const CalendarView({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text("Calendar Coming Soon"));
   }
 }
