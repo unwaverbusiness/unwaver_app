@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "693008491248",
+    "project_id": "unwaver-67be8",
+    "storage_bucket": "unwaver-67be8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:693008491248:android:afbcbff115052e421a5835",
+        "android_client_info": {
+          "package_name": "com.example.unwaver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASeni1qAwG-gyfjmTb85LY6qWq7XaNXns"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
