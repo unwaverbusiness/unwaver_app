@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'purpose_generator_screen.dart'; // <--- 1. IMPORT THE NEW SCREEN
 
+// Note: If you are pasting this into 'home_screen.dart', you might not need 'main()' here.
+// But I left it in case you are running this file standalone.
 void main() {
   runApp(const GoalTrackerApp());
 }
@@ -74,6 +77,22 @@ class HomeScreen extends StatelessWidget {
       // Top App Bar
       appBar: AppBar(
         title: const Text('My Today Goals'),
+        
+        // <--- 2. ADDED THE AI BUTTON HERE ---
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome), // The "Sparkle" icon represents AI
+            tooltip: 'Purpose Coach',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PurposeGeneratorScreen()),
+              );
+            },
+          ),
+        ],
+        // ------------------------------------
+        
       ),
       // Main Body: A list view of goals
       body: ListView.builder(
