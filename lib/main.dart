@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
-// IMPORT YOUR NEW HOME SCREEN
-import 'Screens/Home/home_screen.dart'; 
-// import 'Screens/Accounts/login_screen.dart'; // Keep this if you want to start at login
+import 'services/app_data_service.dart';
+import 'Screens/main_layout.dart';  // CHANGE THIS LINE
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,17 +25,17 @@ class UnwaverApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Unwaver',
-      theme: ThemeData(
-        primaryColor: const Color.fromARGB(255, 29, 140, 160),
-        useMaterial3: true,
+    return ChangeNotifierProvider(
+      create: (context) => AppDataService(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Unwaver',
+        theme: ThemeData(
+          primaryColor: const Color.fromARGB(255, 29, 140, 160),
+          useMaterial3: true,
+        ),
+        home: const MainLayout(),  // CHANGE THIS LINE
       ),
-      // --- THE CRITICAL FIX ---
-      // Point this DIRECTLY to HomeScreen. 
-      // Do NOT point it to "MainLayout" or "BaseScreen".
-      home: const HomeScreen(), 
     );
   }
 }

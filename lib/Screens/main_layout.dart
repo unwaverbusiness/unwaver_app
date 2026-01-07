@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-// Look inside the 'Home' folder for the home screen
-import 'Home/home_screen.dart'; 
-
-// Look inside the 'Accounts' folder for the profile screen
-import 'Accounts/profile_screen.dart';
+import 'Goals/goal_overview_screen.dart';
+import 'Habits/habits_screen.dart';
+import 'Home/purpose_generator_screen.dart';
+import 'Tasks/tasks_screen.dart';
+import 'Calendar/calendar_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -16,45 +16,68 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
 
-  // FIX: Removed 'static const' so it can hold your custom widgets
+  // --- THE 5 SCREENS ---
   final List<Widget> _screens = [
-    const HomeScreen(),
-    const ProfileScreen(),
-    const Center(child: Text('Settings')),
+    const GoalOverviewScreen(),      // Index 0: Goals
+    const HabitsScreen(),            // Index 1: Habits
+    const PurposeGeneratorScreen(),  // Index 2: Purpose
+    const TasksScreen(),             // Index 3: Tasks
+    const CalendarScreen(),          // Index 4: Calendar
   ];
 
   void _onItemTapped(int index) {
     setState(() {
-      _selectedIndex = index; 
+      _selectedIndex = index;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // The body updates based on the current index
+      // IndexedStack keeps your Goal/Habit data alive when you switch tabs
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
       ),
+      
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onItemTapped,
+        // --- THE 5 NAVIGATION TABS ---
         destinations: const <NavigationDestination>[
+          // 1. Goals
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+            icon: Icon(Icons.flag_outlined),
+            selectedIcon: Icon(Icons.flag),
+            label: 'Goals',
           ),
+          
+          // 2. Habits
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: Icon(Icons.cached), 
+            selectedIcon: Icon(Icons.cached),
+            label: 'Habits',
           ),
+          
+          // 3. Purpose
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: Icon(Icons.auto_awesome_outlined),
+            selectedIcon: Icon(Icons.auto_awesome),
+            label: 'Purpose',
+          ),
+          
+          // 4. Tasks
+          NavigationDestination(
+            icon: Icon(Icons.check_box_outlined),
+            selectedIcon: Icon(Icons.check_box),
+            label: 'Tasks',
+          ),
+          
+          // 5. Calendar
+          NavigationDestination(
+            icon: Icon(Icons.calendar_today_outlined),
+            selectedIcon: Icon(Icons.calendar_month),
+            label: 'Calendar',
           ),
         ],
       ),
