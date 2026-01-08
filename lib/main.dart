@@ -1,21 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+
 import 'firebase_options.dart';
 import 'services/app_data_service.dart';
-import 'Screens/main_layout.dart';  // CHANGE THIS LINE
+import 'Screens/main_layout.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-    }
-  } catch (e) {
-    debugPrint("Firebase Error: $e");
-  }
+
+  // Initialize Firebase (fail fast if misconfigured)
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   runApp(const UnwaverApp());
 }
@@ -25,16 +22,20 @@ class UnwaverApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AppDataService(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AppDataService>(
+          create: (_) => AppDataService(),
+        ),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Unwaver',
         theme: ThemeData(
-          primaryColor: const Color.fromARGB(255, 29, 140, 160),
           useMaterial3: true,
+          colorSchemeSeed: const Color(0xFF1D8CA0),
         ),
-        home: const MainLayout(),  // CHANGE THIS LINE
+        home: const MainLayout(),
       ),
     );
   }

@@ -7,7 +7,7 @@ plugins {
     id("com.google.gms.google-services") 
 }
 android {
-    namespace = "com.example.unwaver"
+    namespace = "com.unwaverbusiness.unwaver"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

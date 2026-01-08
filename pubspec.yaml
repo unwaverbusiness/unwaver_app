@@ -1,11 +1,11 @@
 name: unwaver
-description: "A new Flutter project."
-publish_to: 'none' 
+description: A new Flutter project.
+publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.4
+  sdk: ">=3.3.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -22,17 +22,13 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.13.1
 
-# --- FLUTTER CONFIGURATION ---
 flutter:
   uses-material-design: true
-  
   assets:
-    # Use quotes because the file name has spaces!
-    - "assets/Unwaver App Icon.png"
+    - assets/unwaver_app_icon.png
 
-# --- LAUNCHER ICON CONFIGURATION ---
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: launcher_icon
   ios: true
-  image_path: "assets/Unwaver App Icon.png"
+  image_path: assets/unwaver_app_icon.png
   min_sdk_android: 21
