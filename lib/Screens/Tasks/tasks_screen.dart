@@ -74,10 +74,76 @@ class _TasksScreenState extends State<TasksScreen> {
         title: const Text('My Tasks'),
         centerTitle: true,
       ),
+
+      // 1. ADDED DRAWER
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.teal),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    "Unwaver",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "Get Things Done",
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                  SizedBox(height: 10),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.chat_bubble_outline),
+              title: const Text('Coach'),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to Coach
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.track_changes),
+              title: const Text('Goals'),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to Goals
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.repeat),
+              title: const Text('Habits'),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to Habits
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.check_circle_outline, color: Colors.teal),
+              title: const Text('Tasks'),
+              selected: true, // Highlights this item
+              selectedColor: Colors.teal,
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+
       // Floating + Button
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskDialog,
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.teal,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body: ListView.builder(
         itemCount: _tasks.length,
@@ -88,6 +154,7 @@ class _TasksScreenState extends State<TasksScreen> {
             background: Container(color: Colors.red),
             onDismissed: (direction) => _deleteTask(index),
             child: CheckboxListTile(
+              activeColor: Colors.teal,
               title: Text(
                 _tasks[index]['title'],
                 style: TextStyle(

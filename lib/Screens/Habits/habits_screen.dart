@@ -27,12 +27,69 @@ class _HabitsScreenState extends State<HabitsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Daily Habits"),
-        centerTitle: false,
-        automaticallyImplyLeading: false, // Removes back button
+        centerTitle: true, // Changed to true for better UI balance
+        // REMOVED: automaticallyImplyLeading: false (This allows the drawer icon to show)
         actions: [
           IconButton(onPressed: () {}, icon: const Icon(Icons.calendar_month))
         ],
       ),
+
+      // 1. ADDED DRAWER
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.teal),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    "Unwaver",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "Build Discipline",
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                  SizedBox(height: 10),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.chat_bubble_outline),
+              title: const Text('Coach'),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to Coach
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.track_changes),
+              title: const Text('Goals'),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to Goals
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.repeat, color: Colors.teal),
+              title: const Text('Habits'),
+              selected: true,
+              selectedColor: Colors.teal,
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _habits.length,
@@ -40,8 +97,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
           final habit = _habits[index];
           return Card(
             elevation: 0,
-            color: habit['isCompleted'] 
-                ? Colors.green.withOpacity(0.1) 
+            color: habit['isCompleted']
+                ? Colors.green.withOpacity(0.1)
                 : Colors.grey.withOpacity(0.05),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -75,7 +132,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
               subtitle: Text("${habit['streak']} Day Streak"),
               trailing: Switch(
                 value: habit['isCompleted'],
-                activeThumbColor: Colors.green,
+                activeColor: Colors.white,
+                activeTrackColor: Colors.green,
                 onChanged: (val) => _toggleHabit(index),
               ),
             ),
@@ -84,7 +142,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.teal,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
