@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppLogo extends StatelessWidget {
   final double height;
   
-  const AppLogo({super.key, this.height = 40});
+  const AppLogo({super.key, this.height = 52});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +14,6 @@ class AppLogo extends StatelessWidget {
       errorBuilder: (context, error, stackTrace) {
         return Icon(
           Icons.track_changes, 
-          color: Colors.white, 
           size: height,
         );
       },
