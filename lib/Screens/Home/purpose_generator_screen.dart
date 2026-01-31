@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:unwaver/services/api_key_manager.dart';
+// FIXED: Added quotes, removed '/lib/', and added semicolon
+import 'package:unwaver/widgets/main_drawer.dart'; 
 
 class PurposeGeneratorScreen extends StatefulWidget {
   const PurposeGeneratorScreen({super.key});
@@ -9,15 +12,11 @@ class PurposeGeneratorScreen extends StatefulWidget {
 }
 
 class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
-  // --- CONFIGURATION ---
-  // REPLACE WITH YOUR NEW API KEY
-  final String _apiKey = 'AIzaSyBmKkwa30i3OUKrqCTOfrmeQplXyQUZsLc';
-  
   late final GenerativeModel _model;
   late final ChatSession _chat;
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
+
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
 
@@ -33,17 +32,19 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
 
   void _setupAI() {
     try {
-      debugPrint("--- STEP 1: Configuring Gemini Model ---");
+      debugPrint("--- Configuring Gemini Model ---");
       _model = GenerativeModel(
         model: 'gemini-2.5-flash',
-        apiKey: _apiKey,
+        apiKey: ApiKeyManager.geminiKey,
         systemInstruction: Content.system(_buildSystemPrompt()),
       );
-      debugPrint("--- STEP 2: Starting Chat Session ---");
       _chat = _model.startChat();
-      debugPrint("--- SUCCESS: AI is ready to chat! ---");
+      debugPrint("--- AI is ready! ---");
     } catch (e) {
       debugPrint("--- CRITICAL ERROR in _setupAI: $e ---");
+      setState(() {
+        _messages.add(ChatMessage(text: "System Error: Check API Key configuration.", isUser: false));
+      });
     }
   }
 
@@ -101,82 +102,97 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // NOTE: We removed the Scaffold/AppBar here so the HomeScreen handles them!
-    return Column(
-      children: [
-        // CHAT AREA
-        Expanded(
-          child: ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(16),
-            itemCount: _messages.length,
-            itemBuilder: (context, index) {
-              final msg = _messages[index];
-              return Align(
-                alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: msg.isUser ? Colors.teal.shade100 : Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.75,
-                  ),
-                  child: Text(
-                    msg.text,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Purpose Coach"),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color.fromARGB(255, 0, 0, 0),
+        elevation: 1,
+      ),
+      
+      // THE DRAWER (Top Left Menu)
+      drawer: const MainDrawer(currentRoute: '/coach'),
 
-        // LOADING INDICATOR
-        if (_isLoading)
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-
-        // INPUT AREA
-        SafeArea(
-          top: false,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
-                )
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    decoration: const InputDecoration(
-                      hintText: "Ask your coach...",
-                      border: InputBorder.none,
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final msg = _messages[index];
+                return Align(
+                  alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: msg.isUser ? const Color.fromARGB(255, 0, 0, 0) : Colors.grey.shade800,
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(16),
+                        topRight: const Radius.circular(16),
+                        bottomLeft: Radius.circular(msg.isUser ? 16 : 0),
+                        bottomRight: Radius.circular(msg.isUser ? 0 : 16),
+                      ),
                     ),
-                    onSubmitted: (_) => _sendMessage(),
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    ),
+                    child: Text(
+                      msg.text,
+                      style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.white),
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.send, color: Colors.teal),
-                  onPressed: _sendMessage,
-                ),
-              ],
+                );
+              },
             ),
           ),
-        ),
-      ],
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Color.fromARGB(255, 0, 0, 0)),
+              ),
+            ),
+          SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
+                  )
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      decoration: const InputDecoration(
+                        hintText: "Message your coach...",
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.send_rounded, color: Color.fromARGB(255, 0, 0, 0)),
+                    onPressed: _sendMessage,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
