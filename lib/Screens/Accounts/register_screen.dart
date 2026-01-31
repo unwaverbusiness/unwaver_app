@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../Home/home_screen.dart'; // Ensure this matches your file structure
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -50,12 +49,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Account Created Successfully!')),
-      );
-
-      // 3. Navigate to Home (Remove all back buttons so they can't go back to login)
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
       );
 
     } on FirebaseAuthException catch (e) {

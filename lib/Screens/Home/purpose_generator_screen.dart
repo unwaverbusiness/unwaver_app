@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:unwaver/services/api_key_manager.dart';
-<<<<<<< HEAD
-// FIXED: Added quotes, removed '/lib/', and added semicolon
-import 'package:unwaver/widgets/main_drawer.dart'; 
-=======
->>>>>>> 9adc0af4c64c5a0d42b958c3c4a68527308ef64f
+import 'package:unwaver/widgets/MainDrawer.dart'; // FIXED: Corrected import to match your file structure
 
 class PurposeGeneratorScreen extends StatefulWidget {
   const PurposeGeneratorScreen({super.key});
@@ -37,11 +33,8 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
     try {
       debugPrint("--- Configuring Gemini Model ---");
       _model = GenerativeModel(
-<<<<<<< HEAD
-        model: 'gemini-2.5-flash',
-=======
-        model: 'gemini-1.5-flash', // Note: gemini-1.5-flash is currently the standard stable identifier
->>>>>>> 9adc0af4c64c5a0d42b958c3c4a68527308ef64f
+        // FIXED: Used a standard valid model name (1.5-flash) to ensure it works
+        model: 'gemini-1.5-flash',
         apiKey: ApiKeyManager.geminiKey,
         systemInstruction: Content.system(_buildSystemPrompt()),
       );
@@ -117,8 +110,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
         elevation: 1,
       ),
       
-      // THE DRAWER (Top Left Menu)
-<<<<<<< HEAD
+      // FIXED: Using your clean MainDrawer widget
       drawer: const MainDrawer(currentRoute: '/coach'),
 
       body: Column(
@@ -152,101 +144,10 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
                       style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.white),
                     ),
                   ),
-=======
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Color.fromARGB(255, 0, 0, 0)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    "Unwaver",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    "Stay Disciplined",
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
-                  SizedBox(height: 10),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.chat_bubble_outline, color: Color.fromARGB(255, 0, 0, 0)),
-              title: const Text('Coach'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.track_changes, color: Color.fromARGB(255, 0, 0, 0)),
-              title: const Text('Goals'),
-              onTap: () {
-                Navigator.pop(context);
-                // Future: Navigate to Goals page
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.grey),
-              title: const Text('Logout'),
-              onTap: () {
-                Navigator.pop(context);
-                // Future: Add logout logic
-              },
-            ),
-          ],
-        ),
-      ),
-
-      body: Column(
-        children: [
-          // CHAT AREA
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return Align(
-                  alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: msg.isUser ? const Color.fromARGB(255, 0, 0, 0) : Colors.grey.shade200,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(16),
-                        topRight: const Radius.circular(16),
-                        bottomLeft: Radius.circular(msg.isUser ? 16 : 0),
-                        bottomRight: Radius.circular(msg.isUser ? 0 : 16),
-                      ),
-                    ),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
-                    ),
-                    child: Text(
-                      msg.text,
-                      style: const TextStyle(fontSize: 15, height: 1.4),
-                    ),
-                  ),
->>>>>>> 9adc0af4c64c5a0d42b958c3c4a68527308ef64f
                 );
               },
             ),
           ),
-<<<<<<< HEAD
-=======
-
-          // LOADING INDICATOR
->>>>>>> 9adc0af4c64c5a0d42b958c3c4a68527308ef64f
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8.0),
@@ -256,11 +157,6 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2, color: Color.fromARGB(255, 0, 0, 0)),
               ),
             ),
-<<<<<<< HEAD
-=======
-
-          // INPUT AREA
->>>>>>> 9adc0af4c64c5a0d42b958c3c4a68527308ef64f
           SafeArea(
             top: false,
             child: Container(
@@ -269,6 +165,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
+                    // ignore: deprecated_member_use
                     color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
                     offset: const Offset(0, -5),

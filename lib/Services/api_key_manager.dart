@@ -32,7 +32,9 @@ class ApiKeyManager {
       if (kDebugMode && keyName != 'GEMINI_API_MAIN') {
         final mainKey = dotenv.env['GEMINI_API_MAIN'];
         if (mainKey != null && mainKey.isNotEmpty) {
-          print("⚠️ WARNING: Using Unrestricted MAIN key for $keyName");
+          if (kDebugMode) {
+            print("⚠️ WARNING: Using Unrestricted MAIN key for $keyName");
+          }
           return mainKey;
         }
       }

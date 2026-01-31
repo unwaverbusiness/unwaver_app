@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:flutter/material.dart';
 
 class MainDrawer extends StatelessWidget {
@@ -61,6 +63,11 @@ class MainDrawer extends StatelessWidget {
             icon: Icons.calendar_month, 
             text: 'Calendar', 
             route: '/calendar'
+          ),
+          _buildDrawerItem(context, 
+            icon: Icons.bar_chart, // Choose an icon
+           text: 'Statistics',    // The label
+           route: '/statistics'   // The route name you registered in main.dart
           ),
         ],
       ),

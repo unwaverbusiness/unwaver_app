@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 // USING RELATIVE IMPORT to avoid path errors. 
 // Adjust the number of "../" based on your folder structure.
-import '../../widgets/main_drawer.dart'; 
+import '../../widgets/MainDrawer.dart'; 
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});
@@ -68,6 +68,7 @@ class StatisticsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: Colors.black.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 10),
