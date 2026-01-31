@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:unwaver/widgets/maindrawer.dart'; // Ensure this import is present
+import 'package:unwaver/widgets/app_logo.dart';   // <--- Added Import for AppLogo
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -43,7 +44,7 @@ class _TasksScreenState extends State<TasksScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('New Task'),
+        title: const AppLogo(height: 40),
         content: TextField(
           autofocus: true,
           decoration: const InputDecoration(hintText: 'Enter task name'),

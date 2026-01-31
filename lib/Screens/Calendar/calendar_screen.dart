@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:unwaver/widgets/maindrawer.dart'; // Import your custom drawer
+import 'package:unwaver/widgets/app_logo.dart';   // <--- Added Import for AppLogo
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -34,10 +35,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendar'),
-        // Removed manual colors to use the Global Black Theme from main.dart
+        // FIX: Added the comma at the end of this line
+        title: const AppLogo(), 
+        centerTitle: true,
+        actions: [
+          IconButton(onPressed: () {}, icon: const Icon(Icons.calendar_month))
+        ],
       ),
-
+      
       // 1. REPLACED HARDCODED DRAWER WITH MAIN DRAWER
       drawer: const MainDrawer(currentRoute: '/calendar'),
 

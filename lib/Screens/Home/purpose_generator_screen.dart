@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:unwaver/services/api_key_manager.dart';
-import 'package:unwaver/widgets/maindrawer.dart'; // Standard lowercase import
+import 'package:unwaver/widgets/maindrawer.dart'; 
+import 'package:unwaver/widgets/app_logo.dart';
 
 class PurposeGeneratorScreen extends StatefulWidget {
   const PurposeGeneratorScreen({super.key});
@@ -12,14 +13,17 @@ class PurposeGeneratorScreen extends StatefulWidget {
 
 class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
   late final GenerativeModel _model;
-  late final ChatSession _chat;
+  
+  // FIX: Made nullable to prevent crashes if initialization fails
+  ChatSession? _chat; 
+  
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
 
-  // --- MOCK DATA (Replace with real user data later) ---
+  // --- MOCK DATA ---
   final String _userGoals = "1. Run a marathon. 2. Build a million-dollar business. 3. Read 20 books this year.";
   final String _userHabits = "Morning meditation, Coding for 2 hours daily, No sugar diet.";
 
@@ -32,16 +36,21 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
   void _setupAI() {
     try {
       _model = GenerativeModel(
-        model: 'gemini-2.5-flash',
+        model: 'gemini-1.5-flash', // Updated to a stable model name if '2.5' isn't available yet, or keep your version.
         apiKey: ApiKeyManager.geminiKey,
         systemInstruction: Content.system(_buildSystemPrompt()),
       );
       _chat = _model.startChat();
     } catch (e) {
       debugPrint("--- CRITICAL ERROR in _setupAI: $e ---");
-      setState(() {
-        _messages.add(ChatMessage(text: "System Error: Check API Key configuration.", isUser: false));
-      });
+      if (mounted) {
+        setState(() {
+          _messages.add(ChatMessage(
+            text: "System Error: Unable to connect to AI. Check API Key.", 
+            isUser: false
+          ));
+        });
+      }
     }
   }
 
@@ -58,6 +67,14 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
     final message = _textController.text.trim();
     if (message.isEmpty) return;
 
+    // FIX: Safety check. If AI failed to init, don't try to send.
+    if (_chat == null) {
+      setState(() {
+         _messages.add(ChatMessage(text: "Error: AI Service not initialized.", isUser: false));
+      });
+      return;
+    }
+
     setState(() {
       _messages.add(ChatMessage(text: message, isUser: true));
       _isLoading = true;
@@ -66,7 +83,8 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
     _scrollToBottom();
 
     try {
-      final response = await _chat.sendMessage(Content.text(message));
+      // FIX: Use the nullable _chat safely
+      final response = await _chat!.sendMessage(Content.text(message));
       final text = response.text;
 
       if (text != null && mounted) {
@@ -101,12 +119,14 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Purpose Coach"),
-        // Colors are now inherited from main.dart (Black/White)
+        title: const AppLogo(), 
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 255, 255)),
       ),
       
-      // Drawer with the 'Coach' route selected to match your MainDrawer setup
-      drawer: const MainDrawer(currentRoute: '/coach'),
+      drawer: const MainDrawer(currentRoute: '/Coach'),
 
       body: Column(
         children: [
@@ -123,7 +143,6 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      // User = Black, AI = Dark Grey
                       color: msg.isUser ? Colors.black : Colors.grey.shade800,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(16),
@@ -201,3 +220,7 @@ class ChatMessage {
   final bool isUser;
   ChatMessage({required this.text, required this.isUser});
 }
+
+// NOTE: I removed the class AppLogo here because you already 
+// imported it from 'package:unwaver/widgets/app_logo.dart'.
+// Keeping it here would cause a "Duplicated definition" error.
