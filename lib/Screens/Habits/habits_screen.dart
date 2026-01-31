@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:unwaver/widgets/MainDrawer.dart';
+import 'package:unwaver/widgets/maindrawer.dart'; // Ensure casing matches your file
+import 'package:unwaver/widgets/app_logo.dart';   // <--- Added Import for AppLogo
 
 class HabitsScreen extends StatefulWidget {
   const HabitsScreen({super.key});
@@ -23,18 +24,19 @@ class _HabitsScreenState extends State<HabitsScreen> {
     });
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Daily Habits"),
+        // FIX: Added the comma at the end of this line
+        title: const AppLogo(), 
         centerTitle: true,
         actions: [
           IconButton(onPressed: () {}, icon: const Icon(Icons.calendar_month))
         ],
       ),
-      // FIX 1: Add the required 'currentRoute' argument
-      drawer: MainDrawer(currentRoute: '/habits'),
+      
+      drawer: const MainDrawer(currentRoute: '/habits'),
 
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
@@ -43,7 +45,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
           final habit = _habits[index];
           return Card(
             elevation: 0,
-            // FIX 2: syntax was likely broken here in your previous file
             color: habit['isCompleted']
                 // ignore: deprecated_member_use
                 ? Colors.green.withOpacity(0.1)

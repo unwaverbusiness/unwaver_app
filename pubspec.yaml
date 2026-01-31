@@ -29,12 +29,12 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/unwaver_app_icon.png
+    - assets/Unwaver_App_Icon.png
     # Added .env file to assets
     - .env 
 
 flutter_launcher_icons:
   android: launcher_icon
   ios: true
-  image_path: assets/unwaver_app_icon.png
+  image_path: assets/Unwaver_App_Icon.png
   min_sdk_android: 21
