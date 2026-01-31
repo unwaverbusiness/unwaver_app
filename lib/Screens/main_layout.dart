@@ -16,13 +16,12 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
 
-  // --- THE 5 SCREENS ---
   final List<Widget> _screens = [
-    const GoalOverviewScreen(),      // Index 0: Goals
-    const HabitsScreen(),            // Index 1: Habits
-    const PurposeGeneratorScreen(),  // Index 2: Purpose
-    const TasksScreen(),             // Index 3: Tasks
-    const CalendarScreen(),          // Index 4: Calendar
+    const GoalOverviewScreen(),
+    const HabitsScreen(),
+    const PurposeGeneratorScreen(),
+    const TasksScreen(),
+    const CalendarScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -34,52 +33,76 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // IndexedStack keeps your Goal/Habit data alive when you switch tabs
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
       ),
       
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
-        // --- THE 5 NAVIGATION TABS ---
-        destinations: const <NavigationDestination>[
-          // 1. Goals
-          NavigationDestination(
-            icon: Icon(Icons.flag_outlined),
-            selectedIcon: Icon(Icons.flag),
-            label: 'Goals',
+      // Wrap NavigationBar in a Container to apply the gradient
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF2C2C2C), // Dark Grey (Top)
+              Color(0xFF000000), // Pure Black (Bottom)
+            ],
           ),
-          
-          // 2. Habits
-          NavigationDestination(
-            icon: Icon(Icons.cached), 
-            selectedIcon: Icon(Icons.cached),
-            label: 'Habits',
+        ),
+        child: NavigationBarTheme(
+          // Theme wrapper to force icon colors
+          data: NavigationBarThemeData(
+            iconTheme: WidgetStateProperty.resolveWith((states) {
+              // If selected, icon is black (for contrast on gold)
+              if (states.contains(WidgetState.selected)) {
+                return const IconThemeData(color: Color.fromARGB(255, 255, 255, 255));
+              }
+              // If unselected, icon is white
+              return const IconThemeData(color: Colors.white);
+            }),
+            labelTextStyle: WidgetStateProperty.all(
+              const TextStyle(color: Colors.white, fontSize: 12),
+            ),
           ),
-          
-          // 3. Purpose
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome_outlined),
-            selectedIcon: Icon(Icons.auto_awesome),
-            label: 'Purpose',
+          child: NavigationBar(
+            // Make background transparent so gradient shows through
+            backgroundColor: Colors.transparent,
+            
+            // Gold Selection Indicator
+            indicatorColor: const Color.fromARGB(255, 187, 142, 19), 
+            
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _onItemTapped,
+            destinations: const <NavigationDestination>[
+              NavigationDestination(
+                icon: Icon(Icons.track_changes_outlined), 
+                selectedIcon: Icon(Icons.track_changes),
+                label: 'Goals',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.cached), 
+                selectedIcon: Icon(Icons.cached),
+                label: 'Habits',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.waves_outlined),
+                selectedIcon: Icon(Icons.waves),
+                label: 'Purpose',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.check_box_outlined),
+                selectedIcon: Icon(Icons.check_box),
+                label: 'Tasks',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.calendar_today_outlined),
+                selectedIcon: Icon(Icons.calendar_month),
+                label: 'Calendar',
+              ),
+            ],
           ),
-          
-          // 4. Tasks
-          NavigationDestination(
-            icon: Icon(Icons.check_box_outlined),
-            selectedIcon: Icon(Icons.check_box),
-            label: 'Tasks',
-          ),
-          
-          // 5. Calendar
-          NavigationDestination(
-            icon: Icon(Icons.calendar_today_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
-            label: 'Calendar',
-          ),
-        ],
+        ),
       ),
     );
   }

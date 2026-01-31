@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:unwaver/services/api_key_manager.dart';
-import 'package:unwaver/widgets/MainDrawer.dart'; // FIXED: Corrected import to match your file structure
+import 'package:unwaver/widgets/maindrawer.dart'; // Standard lowercase import
 
 class PurposeGeneratorScreen extends StatefulWidget {
   const PurposeGeneratorScreen({super.key});
@@ -19,7 +19,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
 
-  // --- MOCK DATA ---
+  // --- MOCK DATA (Replace with real user data later) ---
   final String _userGoals = "1. Run a marathon. 2. Build a million-dollar business. 3. Read 20 books this year.";
   final String _userHabits = "Morning meditation, Coding for 2 hours daily, No sugar diet.";
 
@@ -31,15 +31,12 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
 
   void _setupAI() {
     try {
-      debugPrint("--- Configuring Gemini Model ---");
       _model = GenerativeModel(
-        // FIXED: Used a standard valid model name (1.5-flash) to ensure it works
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         apiKey: ApiKeyManager.geminiKey,
         systemInstruction: Content.system(_buildSystemPrompt()),
       );
       _chat = _model.startChat();
-      debugPrint("--- AI is ready! ---");
     } catch (e) {
       debugPrint("--- CRITICAL ERROR in _setupAI: $e ---");
       setState(() {
@@ -105,12 +102,10 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Purpose Coach"),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color.fromARGB(255, 0, 0, 0),
-        elevation: 1,
+        // Colors are now inherited from main.dart (Black/White)
       ),
       
-      // FIXED: Using your clean MainDrawer widget
+      // Drawer with the 'Coach' route selected to match your MainDrawer setup
       drawer: const MainDrawer(currentRoute: '/coach'),
 
       body: Column(
@@ -128,7 +123,8 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: msg.isUser ? const Color.fromARGB(255, 0, 0, 0) : Colors.grey.shade800,
+                      // User = Black, AI = Dark Grey
+                      color: msg.isUser ? Colors.black : Colors.grey.shade800,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(16),
                         topRight: const Radius.circular(16),
@@ -148,15 +144,17 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
               },
             ),
           ),
+          
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8.0),
               child: SizedBox(
                 height: 20,
                 width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Color.fromARGB(255, 0, 0, 0)),
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
               ),
             ),
+            
           SafeArea(
             top: false,
             child: Container(
@@ -178,14 +176,14 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
                     child: TextField(
                       controller: _textController,
                       decoration: const InputDecoration(
-                        hintText: "Message your coach...",
+                        hintText: "Ask about your purpose...",
                         border: InputBorder.none,
                       ),
                       onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.send_rounded, color: Color.fromARGB(255, 0, 0, 0)),
+                    icon: const Icon(Icons.send_rounded, color: Colors.black),
                     onPressed: _sendMessage,
                   ),
                 ],

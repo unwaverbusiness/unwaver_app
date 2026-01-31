@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:unwaver/widgets/maindrawer.dart'; // Import your custom drawer
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -34,83 +35,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calendar'),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black, // Changed to Black
-        elevation: 0,
+        // Removed manual colors to use the Global Black Theme from main.dart
       ),
 
-      // 1. DRAWER (Updated to Black Theme)
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.black), // Header background
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    "Unwaver",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    "Plan Your Success",
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
-                  SizedBox(height: 10),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.chat_bubble_outline),
-              title: const Text('Coach'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to Coach
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.track_changes),
-              title: const Text('Goals'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to Goals
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.repeat),
-              title: const Text('Habits'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to Habits
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.check_circle_outline),
-              title: const Text('Tasks'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to Tasks
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month, color: Colors.black), // Icon Color
-              title: const Text('Calendar'),
-              selected: true,
-              selectedColor: Colors.black, // Text Color
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
+      // 1. REPLACED HARDCODED DRAWER WITH MAIN DRAWER
+      drawer: const MainDrawer(currentRoute: '/calendar'),
 
       body: Column(
         children: [

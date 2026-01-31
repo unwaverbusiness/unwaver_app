@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:unwaver/widgets/maindrawer.dart'; // Ensure this import is present
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -51,6 +52,10 @@ class _TasksScreenState extends State<TasksScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            // Accent color for Cancel text
+            style: TextButton.styleFrom(
+              foregroundColor: const Color.fromARGB(255, 0, 0, 0), 
+            ),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -60,6 +65,11 @@ class _TasksScreenState extends State<TasksScreen> {
                 Navigator.pop(context);
               }
             },
+            // Gold background for Add button
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 0, 0, 0), 
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Add'),
           ),
         ],
@@ -72,100 +82,56 @@ class _TasksScreenState extends State<TasksScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Tasks'),
-        centerTitle: true,
+        // Inherits Black/White theme from main.dart
       ),
 
-      // 1. ADDED DRAWER
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.teal),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    "Unwaver",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    "Get Things Done",
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
-                  SizedBox(height: 10),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.chat_bubble_outline),
-              title: const Text('Coach'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to Coach
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.track_changes),
-              title: const Text('Goals'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to Goals
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.repeat),
-              title: const Text('Habits'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to Habits
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.check_circle_outline, color: Colors.teal),
-              title: const Text('Tasks'),
-              selected: true, // Highlights this item
-              selectedColor: Colors.teal,
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
+      // 1. FIXED: Replaced broken hardcoded drawer with MainDrawer
+      drawer: const MainDrawer(currentRoute: '/tasks'),
 
-      // Floating + Button
+      // 2. FIXED: Floating Action Button syntax & color
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskDialog,
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
         child: const Icon(Icons.add, color: Colors.white),
       ),
+
       body: ListView.builder(
+        padding: const EdgeInsets.all(16),
         itemCount: _tasks.length,
         itemBuilder: (context, index) {
           return Dismissible(
             // Key is needed for swiping to delete
             key: Key(_tasks[index]['title']),
-            background: Container(color: Colors.red),
+            background: Container(
+              color: Colors.red,
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              child: const Icon(Icons.delete, color: Colors.white),
+            ),
             onDismissed: (direction) => _deleteTask(index),
-            child: CheckboxListTile(
-              activeColor: Colors.teal,
-              title: Text(
-                _tasks[index]['title'],
-                style: TextStyle(
-                  decoration: _tasks[index]['isDone']
-                      ? TextDecoration.lineThrough
-                      : null,
-                  color: _tasks[index]['isDone'] ? Colors.grey : Colors.black,
-                ),
+            child: Card(
+              elevation: 0,
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey.shade300),
               ),
-              value: _tasks[index]['isDone'],
-              onChanged: (value) => _toggleTask(index),
+              child: CheckboxListTile(
+                // 3. FIXED: Active color syntax
+                activeColor: const Color.fromARGB(255, 187, 142, 19),
+                title: Text(
+                  _tasks[index]['title'],
+                  style: TextStyle(
+                    decoration: _tasks[index]['isDone']
+                        ? TextDecoration.lineThrough
+                        : null,
+                    color: _tasks[index]['isDone'] ? Colors.grey : Colors.black,
+                  ),
+                ),
+                value: _tasks[index]['isDone'],
+                onChanged: (value) => _toggleTask(index),
+                controlAffinity: ListTileControlAffinity.leading, // Checkbox on left
+              ),
             ),
           );
         },
