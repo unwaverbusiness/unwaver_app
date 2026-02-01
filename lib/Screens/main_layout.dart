@@ -6,12 +6,11 @@ import 'Tasks/tasks_screen.dart';
 import 'Calendar/calendar_screen.dart';
 
 class MainLayout extends StatefulWidget {
-  // Add this parameter to allow opening specific tabs
   final int initialIndex;
 
   const MainLayout({
     super.key, 
-    this.initialIndex = 0 // Default to Goals (0) if not specified
+    this.initialIndex = 0 
   });
 
   @override
@@ -24,7 +23,6 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
-    // Initialize with the passed index
     _selectedIndex = widget.initialIndex;
   }
 
@@ -85,11 +83,17 @@ class _MainLayoutState extends State<MainLayout> {
                 selectedIcon: Icon(Icons.cached),
                 label: 'Habits',
               ),
+              
+              // --- FIX APPLIED HERE ---
               NavigationDestination(
-                icon: PurposeNavIcon(size: 60),
-                selectedIcon: PurposeNavIcon(size: 60),
+                // Unselected: Shows original PNG colors
+                icon: PurposeNavIcon(size: 60, color: null), 
+                // Selected: Tints the image white
+                selectedIcon: PurposeNavIcon(size: 60, color: Colors.white), 
                 label: 'Purpose',
               ),
+              // -----------------------
+
               NavigationDestination(
                 icon: Icon(Icons.check_box_outlined),
                 selectedIcon: Icon(Icons.check_box),
@@ -110,7 +114,13 @@ class _MainLayoutState extends State<MainLayout> {
 
 class PurposeNavIcon extends StatelessWidget {
   final double size;
-  const PurposeNavIcon({super.key, this.size = 24.0});
+  final Color? color; 
+
+  const PurposeNavIcon({
+    super.key, 
+    this.size = 24.0, 
+    this.color, 
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -120,6 +130,7 @@ class PurposeNavIcon extends StatelessWidget {
       child: Image.asset(
         'assets/PurposeButton.png',
         fit: BoxFit.contain,
+        color: color, 
       ),
     );
   }

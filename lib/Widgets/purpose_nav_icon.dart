@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 class PurposeNavIcon extends StatelessWidget {
   final double size;
+  final Color? color; 
 
   const PurposeNavIcon({
     super.key, 
-    this.size = 60, 
+    this.size = 24.0, 
+    this.color, 
   });
 
   @override
@@ -14,8 +16,11 @@ class PurposeNavIcon extends StatelessWidget {
       height: size,
       width: size,
       child: Image.asset(
-        'assets/PurposeButton.png', // Ensure this image exists in your assets folder
+        'assets/PurposeButton.png',
         fit: BoxFit.contain,
+        // If color is null, the image uses its original colors.
+        // If color is provided (e.g., Colors.white), it tints the image.
+        color: color, 
       ),
     );
   }
