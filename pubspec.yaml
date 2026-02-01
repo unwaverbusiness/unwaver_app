@@ -29,8 +29,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/Unwaver_App_Icon.png
-    # Added .env file to assets
+    - assets/
     - .env 
 
 flutter_launcher_icons:

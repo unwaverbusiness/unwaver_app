@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+// REMOVED: import 'package:widgets/purpose_nav_icon.dart'; (Not needed since class is below)
 import 'Goals/goal_overview_screen.dart';
 import 'Habits/habits_screen.dart';
 import 'Home/purpose_generator_screen.dart';
@@ -54,9 +54,9 @@ class _MainLayoutState extends State<MainLayout> {
           // Theme wrapper to force icon colors
           data: NavigationBarThemeData(
             iconTheme: WidgetStateProperty.resolveWith((states) {
-              // If selected, icon is black (for contrast on gold)
+              // If selected, icon is white (useful for standard icons)
               if (states.contains(WidgetState.selected)) {
-                return const IconThemeData(color: Color.fromARGB(255, 255, 255, 255));
+                return const IconThemeData(color: Colors.white);
               }
               // If unselected, icon is white
               return const IconThemeData(color: Colors.white);
@@ -85,11 +85,15 @@ class _MainLayoutState extends State<MainLayout> {
                 selectedIcon: Icon(Icons.cached),
                 label: 'Habits',
               ),
+              
+              // --- UPDATED PURPOSE BUTTON ---
               NavigationDestination(
-                icon: Icon(Icons.waves_outlined),
-                selectedIcon: Icon(Icons.waves),
+                icon: PurposeNavIcon(size: 60), // Unselected State
+                selectedIcon: PurposeNavIcon(size: 60), // Selected State (Slightly larger)
                 label: 'Purpose',
               ),
+              // ------------------------------
+
               NavigationDestination(
                 icon: Icon(Icons.check_box_outlined),
                 selectedIcon: Icon(Icons.check_box),
@@ -103,6 +107,30 @@ class _MainLayoutState extends State<MainLayout> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// --- CUSTOM WIDGET DEFINITION ---
+// Because this class is here, you do not need to import it at the top.
+class PurposeNavIcon extends StatelessWidget {
+  final double size;
+
+  const PurposeNavIcon({
+    super.key, 
+    this.size = 24.0, 
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: size,
+      width: size,
+      child: Image.asset(
+        'assets/PurposeButton.png',
+        fit: BoxFit.contain,
+        // Note: No color is applied here, so it uses the original image colors.
       ),
     );
   }
