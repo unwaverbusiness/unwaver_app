@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:unwaver/widgets/maindrawer.dart'; // Ensure casing matches your file
-import 'package:unwaver/widgets/app_logo.dart';   // <--- Added Import for AppLogo
+import 'package:unwaver/widgets/maindrawer.dart';
+import 'package:unwaver/widgets/app_logo.dart';
+import 'habit_creation_screen.dart'; // Ensure this matches your file name
 
 class HabitsScreen extends StatefulWidget {
   const HabitsScreen({super.key});
@@ -10,7 +11,7 @@ class HabitsScreen extends StatefulWidget {
 }
 
 class _HabitsScreenState extends State<HabitsScreen> {
-  // Dummy data - later this will fetch from Firebase
+  // Dummy data
   final List<Map<String, dynamic>> _habits = [
     {"title": "Morning Meditation", "isCompleted": false, "streak": 12},
     {"title": "Drink 2L Water", "isCompleted": true, "streak": 5},
@@ -24,15 +25,23 @@ class _HabitsScreenState extends State<HabitsScreen> {
     });
   }
 
+  // Navigation Helper
+  void _navToCreation() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const HabitCreationScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // FIX: Added the comma at the end of this line
         title: const AppLogo(), 
         centerTitle: true,
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.calendar_month))
+          // Only the Calendar icon remains here
+          IconButton(onPressed: () {}, icon: const Icon(Icons.calendar_month)),
         ],
       ),
       
@@ -92,8 +101,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
           );
         },
       ),
+      
+      // The Floating Action Button handles the navigation
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: _navToCreation,
         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
         child: const Icon(Icons.add, color: Colors.white),
       ),

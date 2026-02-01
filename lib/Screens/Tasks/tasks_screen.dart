@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:unwaver/widgets/maindrawer.dart'; 
-import 'package:unwaver/widgets/app_logo.dart';   
+import 'package:unwaver/widgets/app_logo.dart';
+// IMPORT FIX: Ensure this file exists in the same folder!
+import 'task_creation_screen.dart';   
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -17,13 +19,6 @@ class _TasksScreenState extends State<TasksScreen> {
     {'title': 'Finish Flutter app', 'isDone': true},
   ];
 
-  // Function to add a new task
-  void _addTask(String taskTitle) {
-    setState(() {
-      _tasks.add({'title': taskTitle, 'isDone': false});
-    });
-  }
-
   // Function to toggle checkbox
   void _toggleTask(int index) {
     setState(() {
@@ -38,42 +33,12 @@ class _TasksScreenState extends State<TasksScreen> {
     });
   }
 
-  // Pop-up dialog to type new task
-  void _showAddTaskDialog() {
-    String newTask = '';
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        // FIXED: Removed argument 'height: 40' to match standard widget definition
-        title: const AppLogo(), 
-        content: TextField(
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'Enter task name'),
-          onChanged: (value) => newTask = value,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color.fromARGB(255, 0, 0, 0), 
-            ),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (newTask.isNotEmpty) {
-                _addTask(newTask);
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 0, 0, 0), 
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+  // REPLACED: _showAddTaskDialog is gone.
+  // NEW: Navigation helper function
+  void _navToCreation() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TaskCreationScreen()),
     );
   }
 
@@ -81,7 +46,6 @@ class _TasksScreenState extends State<TasksScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // FIXED: Replaced Text title with AppLogo to match your branding
         title: const AppLogo(),
         centerTitle: true,
         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
@@ -91,8 +55,9 @@ class _TasksScreenState extends State<TasksScreen> {
 
       drawer: const MainDrawer(currentRoute: '/tasks'),
 
+      // UPDATED: Floating Action Button now navigates
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTaskDialog,
+        onPressed: _navToCreation,
         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
         child: const Icon(Icons.add, color: Colors.white),
       ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:unwaver/widgets/maindrawer.dart'; // <--- Added
-import 'package:unwaver/widgets/app_logo.dart';   // <--- Added
+import 'package:unwaver/widgets/maindrawer.dart'; 
+import 'package:unwaver/widgets/app_logo.dart';   
+// IMPORT FIX: Ensure this file exists in the same folder!
+import 'goal_creation_screen.dart'; 
 
 class GoalOverviewScreen extends StatefulWidget {
   const GoalOverviewScreen({super.key});
@@ -39,30 +41,21 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
     if (_goals.isEmpty) return 0.0;
     double total = 0.0;
     for (var goal in _goals) {
-      total += goal['progress'];
+      // FIX: Explicitly tell Flutter this is a double
+      total += (goal['progress'] as double);
     }
     return total / _goals.length;
   }
 
   int get _completedCount {
-    return _goals.where((g) => g['progress'] >= 1.0).length;
-  }
-
-  void _addNewGoal(String title, String category) {
-    setState(() {
-      _goals.add({
-        "title": title,
-        "subtitle": "$category • 0 Day Streak",
-        "progress": 0.0,
-        "icon": Icons.star,
-        "color": Colors.indigo,
-      });
-    });
+    // FIX: Explicitly cast to double before comparing
+    return _goals.where((g) => (g['progress'] as double) >= 1.0).length;
   }
 
   void _updateProgress(int index) {
     setState(() {
-      double current = _goals[index]['progress'];
+      // FIX: Explicitly cast to double
+      double current = (_goals[index]['progress'] as double);
       if (current >= 1.0) {
         _goals[index]['progress'] = 0.0;
       } else {
@@ -71,61 +64,10 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
     });
   }
 
-  void _showAddGoalDialog() {
-    final TextEditingController titleController = TextEditingController();
-    final TextEditingController categoryController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        // Use AppLogo here for consistency if desired, or keep generic text
-        title: const AppLogo(), 
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Goal Title',
-                hintText: 'e.g. Meditate',
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: categoryController,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                hintText: 'e.g. Health',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.black, // Match your theme
-            ),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (titleController.text.isNotEmpty) {
-                _addNewGoal(
-                  titleController.text,
-                  categoryController.text.isEmpty ? "General" : categoryController.text,
-                );
-                Navigator.pop(context);
-              }
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.black, // Match your theme
-            ),
-            child: const Text('Create'),
-          ),
-        ],
-      ),
+  void _navToCreation() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const GoalCreationScreen()),
     );
   }
 
@@ -134,20 +76,12 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // FIXED: Replaced Text title with AppLogo
         title: const AppLogo(),
         centerTitle: true,
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: _showAddGoalDialog,
-          ),
-        ],
       ),
       
-      // FIXED: Used MainDrawer instead of hardcoded Drawer
       drawer: const MainDrawer(currentRoute: '/goals'),
 
       body: Column(
@@ -169,7 +103,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                     CircularProgressIndicator(
                       value: _overallProgress,
                       backgroundColor: Colors.grey[300],
-                      color: Colors.black, // Updated to match theme
+                      color: Colors.black, 
                       strokeWidth: 8,
                     ),
                     Text(
@@ -201,24 +135,32 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
               itemCount: _goals.length,
               itemBuilder: (context, index) {
                 final goal = _goals[index];
+                
+                // FIX: Cast variables for safety
+                final Color goalColor = goal['color'] as Color;
+                final IconData goalIcon = goal['icon'] as IconData;
+                final double goalProgress = goal['progress'] as double;
+                final String goalTitle = goal['title'] as String;
+                final String goalSubtitle = goal['subtitle'] as String;
+
                 return ListTile(
                   leading: GestureDetector(
                     onTap: () => _updateProgress(index),
                     child: CircleAvatar(
-                      backgroundColor: goal['color'].withOpacity(0.2),
-                      child: Icon(goal['icon'], color: goal['color']),
+                      backgroundColor: goalColor.withOpacity(0.2),
+                      child: Icon(goalIcon, color: goalColor),
                     ),
                   ),
-                  title: Text(goal['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(goalTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(goal['subtitle']),
+                      Text(goalSubtitle),
                       const SizedBox(height: 5),
                       LinearProgressIndicator(
-                        value: goal['progress'],
+                        value: goalProgress,
                         backgroundColor: Colors.grey[200],
-                        color: goal['color'],
+                        color: goalColor,
                         minHeight: 5,
                         borderRadius: BorderRadius.circular(5),
                       ),
@@ -235,6 +177,12 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
             ),
           ),
         ],
+      ),
+
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navToCreation,
+        backgroundColor: Colors.black,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

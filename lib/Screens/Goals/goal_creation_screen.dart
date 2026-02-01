@@ -1,28 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Add intl to pubspec.yaml if missing
+import 'package:intl/intl.dart'; 
 
-class HabitCreationScreen extends StatefulWidget {
-  const HabitCreationScreen({super.key});
+class GoalCreationScreen extends StatefulWidget {
+  const GoalCreationScreen({super.key});
 
   @override
-  State<HabitCreationScreen> createState() => _HabitCreationScreenState();
+  State<GoalCreationScreen> createState() => _GoalCreationScreenState();
 }
 
-class _HabitCreationScreenState extends State<HabitCreationScreen> {
+class _GoalCreationScreenState extends State<GoalCreationScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // --- Controllers & State ---
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _categoryController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _metricController = TextEditingController(); // e.g. "Run 5km" or "$10k Saved"
   final TextEditingController _descriptionController = TextEditingController();
 
   String _selectedPillar = 'Health';
   String _priority = 'Medium';
-  String _urgency = 'Medium';
   
-  DateTime _startDate = DateTime.now();
-  DateTime? _endDate;
-  DateTime? _deadline;
+  DateTime _deadline = DateTime.now().add(const Duration(days: 30)); // Default to 30 days out
 
   // --- Dropdown Options ---
   final List<String> _pillars = [
@@ -38,19 +35,19 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
   final List<String> _levels = ['Low', 'Medium', 'High', 'Critical'];
 
   // --- Date Picker Helper ---
-  Future<void> _pickDate(BuildContext context, {required bool isStart, bool isDeadline = false}) async {
+  Future<void> _pickDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
+      initialDate: _deadline,
+      firstDate: DateTime.now(),
       lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Colors.black, // Header background color
-              onPrimary: Colors.white, // Header text color
-              onSurface: Colors.black, // Body text color
+              primary: Colors.black, 
+              onPrimary: Colors.white, 
+              onSurface: Colors.black,
             ),
           ),
           child: child!,
@@ -60,33 +57,25 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
 
     if (picked != null) {
       setState(() {
-        if (isDeadline) {
-          _deadline = picked;
-        } else if (isStart) {
-          _startDate = picked;
-        } else {
-          _endDate = picked;
-        }
+        _deadline = picked;
       });
     }
   }
 
-  void _saveHabit() {
+  void _saveGoal() {
     if (_formKey.currentState!.validate()) {
       // Process Data Here
-      final newHabit = {
-        'name': _nameController.text,
-        'category': _categoryController.text,
+      final newGoal = {
+        'title': _titleController.text,
+        'metric': _metricController.text,
         'pillar': _selectedPillar,
         'priority': _priority,
-        'urgency': _urgency,
         'description': _descriptionController.text,
-        'startDate': _startDate,
-        'endDate': _endDate,
         'deadline': _deadline,
+        'progress': 0.0, // Start at 0%
       };
 
-      print("Habit Created: $newHabit"); // Debug print
+      print("Goal Created: $newGoal"); // Debug print
       Navigator.pop(context); // Go back to previous screen
     }
   }
@@ -96,13 +85,13 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("New Habit", style: TextStyle(color: Colors.black)),
+        title: const Text("New Goal", style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
           TextButton(
-            onPressed: _saveHabit,
+            onPressed: _saveGoal,
             child: const Text(
               "SAVE",
               style: TextStyle(color: Color.fromARGB(255, 187, 142, 19), fontWeight: FontWeight.bold),
@@ -115,16 +104,24 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            // 1. Name
-            _buildLabel("Habit Name"),
+            // 1. Goal Title
+            _buildLabel("Goal Title"),
             TextFormField(
-              controller: _nameController,
-              decoration: _inputDecoration("e.g. Morning Run"),
-              validator: (val) => val!.isEmpty ? "Please enter a name" : null,
+              controller: _titleController,
+              decoration: _inputDecoration("e.g. Run a Marathon"),
+              validator: (val) => val!.isEmpty ? "Please enter a title" : null,
             ),
             const SizedBox(height: 20),
 
-            // 2. Pillar (Dropdown)
+            // 2. Success Metric
+            _buildLabel("Success Metric (Measurable Result)"),
+            TextFormField(
+              controller: _metricController,
+              decoration: _inputDecoration("e.g. 42km in under 4 hours"),
+            ),
+            const SizedBox(height: 20),
+
+            // 3. Pillar (Dropdown)
             _buildLabel("Life Pillar"),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -148,83 +145,58 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 3. Category
-            _buildLabel("Category (Sub-pillar)"),
-            TextFormField(
-              controller: _categoryController,
-              decoration: _inputDecoration("e.g. Cardio"),
-            ),
+            // 4. Priority 
+            _buildLabel("Priority"),
+            _buildDropdown(_levels, _priority, (val) => setState(() => _priority = val!)),
             const SizedBox(height: 20),
 
-            // 4. Priority & Urgency Row
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel("Priority"),
-                      _buildDropdown(_levels, _priority, (val) => setState(() => _priority = val!)),
-                    ],
-                  ),
+            // 5. Deadline
+            _buildLabel("Target Deadline"),
+            InkWell(
+              onTap: () => _pickDate(context),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel("Urgency"),
-                      _buildDropdown(_levels, _urgency, (val) => setState(() => _urgency = val!)),
-                    ],
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      DateFormat('MMMM dd, yyyy').format(_deadline),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const Icon(Icons.calendar_today, color: Colors.black),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // 5. Dates Section
-            _buildLabel("Timeline"),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                children: [
-                  _buildDateRow("Start Date", _startDate, () => _pickDate(context, isStart: true)),
-                  const Divider(),
-                  _buildDateRow("End Date", _endDate, () => _pickDate(context, isStart: false)),
-                  const Divider(),
-                  _buildDateRow("Hard Deadline", _deadline, () => _pickDate(context, isStart: false, isDeadline: true), isAlert: true),
-                ],
               ),
             ),
             const SizedBox(height: 20),
 
-            // 6. Description
-            _buildLabel("Description / Why?"),
+            // 6. Description / Strategy
+            _buildLabel("Strategy / Description"),
             TextFormField(
               controller: _descriptionController,
               maxLines: 4,
-              decoration: _inputDecoration("Describe the habit and why it matters..."),
+              decoration: _inputDecoration("How will you achieve this?"),
             ),
             
             const SizedBox(height: 40),
             
-            // 7. Create Button (Main)
+            // 7. Create Button
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _saveHabit,
+                onPressed: _saveGoal,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text("CREATE HABIT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                child: const Text("CREATE GOAL", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
           ],
@@ -269,34 +241,6 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
           isExpanded: true,
           items: items.map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
           onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDateRow(String label, DateTime? date, VoidCallback onTap, {bool isAlert = false}) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: TextStyle(color: isAlert ? Colors.red : Colors.black87, fontWeight: isAlert ? FontWeight.bold : FontWeight.normal)),
-            Row(
-              children: [
-                Text(
-                  date == null ? "Select" : DateFormat('MMM dd, yyyy').format(date),
-                  style: TextStyle(
-                    color: date == null ? Colors.grey : (isAlert ? Colors.red : Colors.black),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Icon(Icons.calendar_today, size: 16, color: isAlert ? Colors.red : Colors.grey),
-              ],
-            ),
-          ],
         ),
       ),
     );
