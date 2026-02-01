@@ -12,20 +12,23 @@ class PurposeGeneratorScreen extends StatefulWidget {
 }
 
 class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
+  // --- AI LOGIC ---
   late final GenerativeModel _model;
-  
-  // FIX: Made nullable to prevent crashes if initialization fails
   ChatSession? _chat; 
-  
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
 
-  // --- MOCK DATA ---
+  // Mock User Context for the AI
   final String _userGoals = "1. Run a marathon. 2. Build a million-dollar business. 3. Read 20 books this year.";
   final String _userHabits = "Morning meditation, Coding for 2 hours daily, No sugar diet.";
+
+  // --- LIFE SYSTEM STATE ---
+  final TextEditingController _purposeController = TextEditingController(text: "I build systems that empower others to find freedom.");
+  
+  // OPTIMIZED FIX: Defined as nullable list to allow for the safety check below
+  final List<String>? _coreValues = ["Discipline", "Clarity", "Impact", "Growth"];
 
   @override
   void initState() {
@@ -36,21 +39,13 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
   void _setupAI() {
     try {
       _model = GenerativeModel(
-        model: 'gemini-1.5-flash', // Updated to a stable model name if '2.5' isn't available yet, or keep your version.
+        model: 'gemini-1.5-flash', 
         apiKey: ApiKeyManager.geminiKey,
         systemInstruction: Content.system(_buildSystemPrompt()),
       );
       _chat = _model.startChat();
     } catch (e) {
       debugPrint("--- CRITICAL ERROR in _setupAI: $e ---");
-      if (mounted) {
-        setState(() {
-          _messages.add(ChatMessage(
-            text: "System Error: Unable to connect to AI. Check API Key.", 
-            isUser: false
-          ));
-        });
-      }
     }
   }
 
@@ -63,19 +58,12 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
     """;
   }
 
-  Future<void> _sendMessage() async {
+  Future<void> _sendMessage(StateSetter updateModalState) async {
     final message = _textController.text.trim();
     if (message.isEmpty) return;
+    if (_chat == null) return;
 
-    // FIX: Safety check. If AI failed to init, don't try to send.
-    if (_chat == null) {
-      setState(() {
-         _messages.add(ChatMessage(text: "Error: AI Service not initialized.", isUser: false));
-      });
-      return;
-    }
-
-    setState(() {
+    updateModalState(() {
       _messages.add(ChatMessage(text: message, isUser: true));
       _isLoading = true;
     });
@@ -83,12 +71,11 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
     _scrollToBottom();
 
     try {
-      // FIX: Use the nullable _chat safely
       final response = await _chat!.sendMessage(Content.text(message));
       final text = response.text;
 
       if (text != null && mounted) {
-        setState(() {
+        updateModalState(() {
           _messages.add(ChatMessage(text: text, isUser: false));
           _isLoading = false;
         });
@@ -96,7 +83,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() {
+      updateModalState(() {
         _messages.add(ChatMessage(text: "Error: ${e.toString()}", isUser: false));
         _isLoading = false;
       });
@@ -115,102 +102,313 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
     });
   }
 
+  // --- UI BUILDER ---
+
   @override
   Widget build(BuildContext context) {
+    const goldColor = Color(0xFFBB8E13);
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const AppLogo(), 
         centerTitle: true,
         elevation: 0,
-        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-        iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 255, 255)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      
       drawer: const MainDrawer(currentRoute: '/Coach'),
+      
+      // --- FLOATING AI BUTTON ---
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.black,
+        icon: const Icon(Icons.psychology, color: goldColor),
+        label: const Text("Consult Coach", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        onPressed: () => _showAIChatModal(context),
+      ),
 
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return Align(
-                  alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: msg.isUser ? Colors.black : Colors.grey.shade800,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(16),
-                        topRight: const Radius.circular(16),
-                        bottomLeft: Radius.circular(msg.isUser ? 16 : 0),
-                        bottomRight: Radius.circular(msg.isUser ? 0 : 16),
-                      ),
-                    ),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
-                    ),
-                    child: Text(
-                      msg.text,
-                      style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.white),
-                    ),
-                  ),
-                );
-              },
+      // --- LIFE SYSTEM DASHBOARD ---
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Life System",
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -1),
             ),
-          ),
-          
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+            const SizedBox(height: 5),
+            Text(
+              "Define your north star.",
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 24),
+
+            // 1. PRIME PURPOSE WIDGET
+            _buildFloatingCard(
+              title: "Prime Purpose",
+              icon: Icons.star,
+              goldAccent: true,
+              child: TextField(
+                controller: _purposeController,
+                maxLines: 3,
+                style: const TextStyle(fontSize: 18, height: 1.5, fontWeight: FontWeight.w500),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  hintText: "What is your ultimate mission?",
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 2. CORE VALUES WIDGET
+            _buildFloatingCard(
+              title: "Core Values",
+              icon: Icons.diamond,
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: (_coreValues ?? []).map((value) => Chip( // <--- THE FIX: Added safety check (?? [])
+                  label: Text(value),
+                  backgroundColor: Colors.black,
+                  labelStyle: const TextStyle(color: Colors.white),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                )).toList(),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 3. IDENTITY STATEMENTS
+            _buildFloatingCard(
+              title: "Identity Statements",
+              icon: Icons.fingerprint,
+              child: Column(
+                children: [
+                  _buildIdentityRow("I am", "a relentless problem solver."),
+                  const Divider(),
+                  _buildIdentityRow("I create", "value for those around me."),
+                  const Divider(),
+                  _buildIdentityRow("I never", "compromise on my standards."),
+                ],
               ),
             ),
             
-          SafeArea(
-            top: false,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    // ignore: deprecated_member_use
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  )
-                ],
+            // Padding for FAB
+            const SizedBox(height: 80),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- HELPER WIDGETS ---
+
+  Widget _buildFloatingCard({
+    required String title, 
+    required IconData icon, 
+    required Widget child,
+    bool goldAccent = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: goldAccent 
+          ? Border.all(color: const Color(0xFFBB8E13).withOpacity(0.5), width: 1.5)
+          : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: goldAccent ? const Color(0xFFBB8E13) : Colors.grey.shade400),
+              const SizedBox(width: 10),
+              Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: goldAccent ? const Color(0xFFBB8E13) : Colors.grey.shade600,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  letterSpacing: 1.2,
+                ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      decoration: const InputDecoration(
-                        hintText: "Ask about your purpose...",
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send_rounded, color: Colors.black),
-                    onPressed: _sendMessage,
-                  ),
-                ],
-              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIdentityRow(String prefix, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "$prefix ",
+            style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  // --- CHAT MODAL ---
+
+  void _showAIChatModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: Color(0xFF1A1A1A), 
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    height: 4,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade700,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.psychology, color: Color(0xFFBB8E13)),
+                        SizedBox(width: 8),
+                        Text(
+                          "AI Life Coach",
+                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: Colors.grey),
+
+                  Expanded(
+                    child: _messages.isEmpty 
+                      ? const Center(child: Text("Ask me anything about your purpose...", style: TextStyle(color: Colors.grey)))
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final msg = _messages[index];
+                            return Align(
+                              alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: msg.isUser ? const Color(0xFFBB8E13) : Colors.grey.shade800,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(16),
+                                    topRight: const Radius.circular(16),
+                                    bottomLeft: Radius.circular(msg.isUser ? 16 : 0),
+                                    bottomRight: Radius.circular(msg.isUser ? 0 : 16),
+                                  ),
+                                ),
+                                constraints: BoxConstraints(
+                                  maxWidth: MediaQuery.of(context).size.width * 0.75,
+                                ),
+                                child: Text(
+                                  msg.text,
+                                  style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.white),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                  ),
+
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: CircularProgressIndicator(color: Color(0xFFBB8E13)),
+                    ),
+
+                  Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom + 16, 
+                      left: 16, 
+                      right: 16, 
+                      top: 8
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade900,
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(color: Colors.grey.shade700),
+                            ),
+                            child: TextField(
+                              controller: _textController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                hintText: "Type a message...",
+                                hintStyle: TextStyle(color: Colors.grey),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (_) => _sendMessage(setModalState),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        CircleAvatar(
+                          backgroundColor: const Color(0xFFBB8E13),
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_upward, color: Colors.white),
+                            onPressed: () => _sendMessage(setModalState),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+        );
+      },
     );
   }
 }
@@ -220,7 +418,3 @@ class ChatMessage {
   final bool isUser;
   ChatMessage({required this.text, required this.isUser});
 }
-
-// NOTE: I removed the class AppLogo here because you already 
-// imported it from 'package:unwaver/widgets/app_logo.dart'.
-// Keeping it here would cause a "Duplicated definition" error.

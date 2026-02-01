@@ -35,7 +35,7 @@ class MainDrawer extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        "Discipline & Focus",
+                        "Declare your purpose.",
                         style: TextStyle(color: Colors.white70, fontSize: 16),
                       ),
                       SizedBox(height: 10),
