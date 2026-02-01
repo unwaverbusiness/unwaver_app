@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:unwaver/widgets/maindrawer.dart'; // <--- Added
+import 'package:unwaver/widgets/app_logo.dart';   // <--- Added
 
 class GoalOverviewScreen extends StatefulWidget {
   const GoalOverviewScreen({super.key});
@@ -8,7 +10,7 @@ class GoalOverviewScreen extends StatefulWidget {
 }
 
 class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
-  // --- STATE LOGIC (Kept exactly the same) ---
+  // --- STATE LOGIC ---
   final List<Map<String, dynamic>> _goals = [
     {
       "title": "Drink 2L Water",
@@ -76,7 +78,8 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('New Goal'),
+        // Use AppLogo here for consistency if desired, or keep generic text
+        title: const AppLogo(), 
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -101,6 +104,9 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black, // Match your theme
+            ),
             child: const Text('Cancel'),
           ),
           FilledButton(
@@ -113,6 +119,9 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                 Navigator.pop(context);
               }
             },
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.black, // Match your theme
+            ),
             child: const Text('Create'),
           ),
         ],
@@ -125,60 +134,21 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Goals'),
-        centerTitle: true, // Changed to true for better balance with drawer
-        // REMOVED: automaticallyImplyLeading: false (So the drawer icon shows up)
+        // FIXED: Replaced Text title with AppLogo
+        title: const AppLogo(),
+        centerTitle: true,
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, color: Colors.white),
             onPressed: _showAddGoalDialog,
           ),
         ],
       ),
       
-      // 1. ADDED DRAWER HERE
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.teal),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    "Unwaver",
-                    style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    "Track Progress",
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
-                  SizedBox(height: 10),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.chat_bubble_outline),
-              title: const Text('Coach'),
-              onTap: () {
-                Navigator.pop(context); // Close drawer
-                // Navigator.pushNamed(context, '/coach'); // Example nav
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.track_changes, color: Colors.teal),
-              title: const Text('Goals'),
-              selected: true, // Highlights this item since we are on the page
-              selectedColor: Colors.teal,
-              onTap: () {
-                Navigator.pop(context); // Already here, just close drawer
-              },
-            ),
-          ],
-        ),
-      ),
+      // FIXED: Used MainDrawer instead of hardcoded Drawer
+      drawer: const MainDrawer(currentRoute: '/goals'),
 
       body: Column(
         children: [
@@ -199,7 +169,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                     CircularProgressIndicator(
                       value: _overallProgress,
                       backgroundColor: Colors.grey[300],
-                      color: Theme.of(context).primaryColor,
+                      color: Colors.black, // Updated to match theme
                       strokeWidth: 8,
                     ),
                     Text(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:unwaver/widgets/maindrawer.dart'; // Ensure this import is present
-import 'package:unwaver/widgets/app_logo.dart';   // <--- Added Import for AppLogo
+import 'package:unwaver/widgets/maindrawer.dart'; 
+import 'package:unwaver/widgets/app_logo.dart';   
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -44,7 +44,8 @@ class _TasksScreenState extends State<TasksScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const AppLogo(height: 40),
+        // FIXED: Removed argument 'height: 40' to match standard widget definition
+        title: const AppLogo(), 
         content: TextField(
           autofocus: true,
           decoration: const InputDecoration(hintText: 'Enter task name'),
@@ -53,7 +54,6 @@ class _TasksScreenState extends State<TasksScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            // Accent color for Cancel text
             style: TextButton.styleFrom(
               foregroundColor: const Color.fromARGB(255, 0, 0, 0), 
             ),
@@ -66,7 +66,6 @@ class _TasksScreenState extends State<TasksScreen> {
                 Navigator.pop(context);
               }
             },
-            // Gold background for Add button
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color.fromARGB(255, 0, 0, 0), 
               foregroundColor: Colors.white,
@@ -82,14 +81,16 @@ class _TasksScreenState extends State<TasksScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Tasks'),
-        // Inherits Black/White theme from main.dart
+        // FIXED: Replaced Text title with AppLogo to match your branding
+        title: const AppLogo(),
+        centerTitle: true,
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
       ),
 
-      // 1. FIXED: Replaced broken hardcoded drawer with MainDrawer
       drawer: const MainDrawer(currentRoute: '/tasks'),
 
-      // 2. FIXED: Floating Action Button syntax & color
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskDialog,
         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
@@ -101,7 +102,6 @@ class _TasksScreenState extends State<TasksScreen> {
         itemCount: _tasks.length,
         itemBuilder: (context, index) {
           return Dismissible(
-            // Key is needed for swiping to delete
             key: Key(_tasks[index]['title']),
             background: Container(
               color: Colors.red,
@@ -118,7 +118,6 @@ class _TasksScreenState extends State<TasksScreen> {
                 side: BorderSide(color: Colors.grey.shade300),
               ),
               child: CheckboxListTile(
-                // 3. FIXED: Active color syntax
                 activeColor: const Color.fromARGB(255, 187, 142, 19),
                 title: Text(
                   _tasks[index]['title'],
@@ -131,7 +130,7 @@ class _TasksScreenState extends State<TasksScreen> {
                 ),
                 value: _tasks[index]['isDone'],
                 onChanged: (value) => _toggleTask(index),
-                controlAffinity: ListTileControlAffinity.leading, // Checkbox on left
+                controlAffinity: ListTileControlAffinity.leading, 
               ),
             ),
           );
