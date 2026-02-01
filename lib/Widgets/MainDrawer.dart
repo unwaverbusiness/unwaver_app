@@ -1,9 +1,11 @@
 // ignore_for_file: file_names
 
 import 'package:flutter/material.dart';
+// 1. IMPORT THE SCREENS
+import 'package:unwaver/Screens/Stats/Statistics.dart'; 
+import 'package:unwaver/Screens/Settings/settings_screen.dart'; // Add this import
 
 class MainDrawer extends StatelessWidget {
-  // We pass in the current route name to know which tab to highlight
   final String currentRoute;
 
   const MainDrawer({super.key, required this.currentRoute});
@@ -11,71 +13,107 @@ class MainDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      child: Column( // Changed ListView to Column to use Spacer()
         children: [
-          // --- HEADER ---
-          const DrawerHeader(
-            decoration: BoxDecoration(color: Colors.black),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
               children: [
-                Text(
-                  "Unwaver",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                // --- HEADER ---
+                const DrawerHeader(
+                  decoration: BoxDecoration(color: Colors.black),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        "Unwaver",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        "Discipline & Focus",
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                      SizedBox(height: 10),
+                    ],
                   ),
                 ),
-                Text(
-                  "Discipline & Focus",
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
+
+                // --- NAVIGATION TABS ---
+                _buildDrawerItem(context, 
+                  icon: Icons.psychology, 
+                  text: 'Coach', 
+                  route: '/coach'
                 ),
-                SizedBox(height: 10),
+                _buildDrawerItem(context, 
+                  icon: Icons.flag, 
+                  text: 'Goals', 
+                  route: '/goals'
+                ),
+                _buildDrawerItem(context, 
+                  icon: Icons.repeat, 
+                  text: 'Habits', 
+                  route: '/habits'
+                ),
+                _buildDrawerItem(context, 
+                  icon: Icons.check_circle_outline, 
+                  text: 'Tasks', 
+                  route: '/tasks'
+                ),
+                _buildDrawerItem(context, 
+                  icon: Icons.calendar_month, 
+                  text: 'Calendar', 
+                  route: '/calendar'
+                ),
+
+                // STATISTICS ITEM
+                _buildDrawerItem(context, 
+                  icon: Icons.bar_chart, 
+                  text: 'Statistics', 
+                  route: '/statistics', 
+                  onTapOverride: () {
+                    Navigator.pop(context); 
+                    Navigator.pushReplacement(
+                      context, 
+                      MaterialPageRoute(builder: (context) => const StatisticsScreen())
+                    );
+                  }
+                ),
               ],
             ),
           ),
 
-          // --- NAVIGATION TABS ---
-          _buildDrawerItem(context, 
-            icon: Icons.psychology, 
-            text: 'Coach', 
-            route: '/coach'
+          // --- DIVIDER & SETTINGS (At Bottom) ---
+          const Divider(),
+          _buildDrawerItem(context,
+            icon: Icons.settings,
+            text: 'Settings',
+            route: '/settings',
+            onTapOverride: () {
+              Navigator.pop(context); // Close drawer
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
           ),
-          _buildDrawerItem(context, 
-            icon: Icons.flag, 
-            text: 'Goals', 
-            route: '/goals'
-          ),
-          _buildDrawerItem(context, 
-            icon: Icons.repeat, 
-            text: 'Habits', 
-            route: '/habits'
-          ),
-          _buildDrawerItem(context, 
-            icon: Icons.check_circle_outline, 
-            text: 'Tasks', 
-            route: '/tasks'
-          ),
-          _buildDrawerItem(context, 
-            icon: Icons.calendar_month, 
-            text: 'Calendar', 
-            route: '/calendar'
-          ),
-          _buildDrawerItem(context, 
-            icon: Icons.bar_chart, // Choose an icon
-           text: 'Statistics',    // The label
-           route: '/statistics'   // The route name you registered in main.dart
-          ),
+          const SizedBox(height: 16), // Padding at bottom
         ],
       ),
     );
   }
 
-  // Helper function to build items and handle highlighting
-  Widget _buildDrawerItem(BuildContext context, {required IconData icon, required String text, required String route}) {
+  // Helper function 
+  Widget _buildDrawerItem(BuildContext context, {
+    required IconData icon, 
+    required String text, 
+    required String route,
+    VoidCallback? onTapOverride, 
+  }) {
     final bool isSelected = currentRoute == route;
 
     return ListTile(
@@ -88,14 +126,12 @@ class MainDrawer extends StatelessWidget {
         ),
       ),
       selected: isSelected,
-      selectedTileColor: Colors.grey[200], // Subtle highlight background
-      onTap: () {
-        // If we are already on this page, just close the drawer
+      selectedTileColor: Colors.grey[200], 
+      onTap: onTapOverride ?? () {
         if (isSelected) {
           Navigator.pop(context);
         } else {
-          // Navigate to the new page and remove the back history (so you don't get stuck in a loop)
-          Navigator.pop(context); // Close drawer first
+          Navigator.pop(context); 
           Navigator.pushReplacementNamed(context, route);
         }
       },
