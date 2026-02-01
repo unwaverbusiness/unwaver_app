@@ -39,7 +39,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
   void _setupAI() {
     try {
       _model = GenerativeModel(
-        model: 'gemini-1.5-flash', 
+        model: 'gemini-2.5-flash', 
         apiKey: ApiKeyManager.geminiKey,
         systemInstruction: Content.system(_buildSystemPrompt()),
       );
