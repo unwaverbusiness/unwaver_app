@@ -197,7 +197,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
                   const Divider(),
                   _buildDateRow("End Date", _endDate, () => _pickDate(context, isStart: false)),
                   const Divider(),
-                  _buildDateRow("Hard Deadline", _deadline, () => _pickDate(context, isStart: false, isDeadline: true), isAlert: true),
+                  _buildDateRow("Deadline", _deadline, () => _pickDate(context, isStart: false, isDeadline: true), isAlert: true),
                 ],
               ),
             ),

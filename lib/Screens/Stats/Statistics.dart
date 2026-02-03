@@ -22,12 +22,13 @@ class StatisticsScreen extends StatefulWidget {
 
 class _StatisticsScreenState extends State<StatisticsScreen> {
   // --- MOCK DATA FOR STATISTICS ---
-  final int _totalGoals = 3;
-  final double _avgGoalCompletion = 0.65; // 65%
-  final int _activeHabits = 4;
-  final int _currentStreak = 12; // Days
-  final int _tasksToday = 8;
-  final int _tasksDone = 5;
+  // Removed 'final' so these can be updated in a real app later
+  int _totalGoals = 3;
+  double _avgGoalCompletion = 0.65; // 65%
+  int _activeHabits = 4;
+  int _currentStreak = 12; // Days
+  int _tasksToday = 8;
+  int _tasksDone = 5;
 
   // Navigation Helper
   void _navigateTo(Widget screen) {

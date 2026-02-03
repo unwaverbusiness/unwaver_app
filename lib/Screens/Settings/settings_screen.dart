@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:unwaver/widgets/app_logo.dart';
+// REMOVED: import 'package:unwaver/widgets/app_logo.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -251,7 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSwitchTile({
+Widget _buildSwitchTile({
     required IconData icon,
     required String title,
     String? subtitle,
@@ -273,7 +273,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : null,
       value: value,
       onChanged: onChanged,
-      activeColor: Colors.black,
+      // FIX: Replace activeColor with activeTrackColor
+      activeTrackColor: Colors.black, 
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }

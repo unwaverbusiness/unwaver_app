@@ -37,7 +37,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   bool _isSyncing = false; // To show loading state during sync
 
   // Theme Colors
-  final Color _goldColor = const Color(0xFFBB8E13);
+  final Color _goldColor = const Color.fromARGB(255, 255, 255, 255);
   final Color _bgGrey = const Color(0xFFF5F5F5);
 
   @override

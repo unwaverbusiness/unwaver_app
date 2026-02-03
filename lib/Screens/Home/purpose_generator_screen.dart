@@ -180,6 +180,24 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
 
             const SizedBox(height: 20),
 
+                        // 2. PILLARS OF LIFE WIDGET
+            _buildFloatingCard(
+              title: "Define the 7 Pillars of Life",
+              icon: Icons.account_balance,
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: (_coreValues ?? []).map((value) => Chip( // <--- THE FIX: Added safety check (?? [])
+                  label: Text(value),
+                  backgroundColor: Colors.black,
+                  labelStyle: const TextStyle(color: Colors.white),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                )).toList(),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
             // 3. IDENTITY STATEMENTS
             _buildFloatingCard(
               title: "Identity Statements",
@@ -197,6 +215,8 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
             
             // Padding for FAB
             const SizedBox(height: 80),
+
+            
           ],
         ),
       ),
@@ -219,6 +239,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: Colors.grey.withOpacity(0.1),
             blurRadius: 15,
             offset: const Offset(0, 8),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // For kDebugMode
 import 'package:intl/intl.dart'; 
 
 class GoalCreationScreen extends StatefulWidget {
@@ -75,7 +76,10 @@ class _GoalCreationScreenState extends State<GoalCreationScreen> {
         'progress': 0.0, // Start at 0%
       };
 
-      print("Goal Created: $newGoal"); // Debug print
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print("Goal Created: $newGoal");
+      } // Debug print
       Navigator.pop(context); // Go back to previous screen
     }
   }

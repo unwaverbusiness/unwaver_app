@@ -147,6 +147,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                   leading: GestureDetector(
                     onTap: () => _updateProgress(index),
                     child: CircleAvatar(
+                      // ignore: deprecated_member_use
                       backgroundColor: goalColor.withOpacity(0.2),
                       child: Icon(goalIcon, color: goalColor),
                     ),
