@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:unwaver/widgets/maindrawer.dart'; 
-import 'package:unwaver/widgets/app_logo.dart';   
-// IMPORT FIX: Ensure this file exists in the same folder!
-import 'goal_creation_screen.dart'; 
+import 'package:unwaver/widgets/maindrawer.dart';
+import 'package:unwaver/widgets/app_logo.dart';
+import 'goal_creation_screen.dart';
+// IMPORT FIX: Assuming 'Goals' is a sibling folder to 'Goals'
+import '../Goals/Goal_instruction_banner.dart'; 
 
 class GoalOverviewScreen extends StatefulWidget {
   const GoalOverviewScreen({super.key});
@@ -13,6 +14,10 @@ class GoalOverviewScreen extends StatefulWidget {
 
 class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
   // --- STATE LOGIC ---
+  
+  // 1. Add the visibility toggle for the banner
+  bool _showBanner = true;
+
   final List<Map<String, dynamic>> _goals = [
     {
       "title": "Drink 2L Water",
@@ -36,21 +41,6 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       "color": const Color.fromARGB(255, 0, 255, 213),
     },
   ];
-
-  double get _overallProgress {
-    if (_goals.isEmpty) return 0.0;
-    double total = 0.0;
-    for (var goal in _goals) {
-      // FIX: Explicitly tell Flutter this is a double
-      total += (goal['progress'] as double);
-    }
-    return total / _goals.length;
-  }
-
-  int get _completedCount {
-    // FIX: Explicitly cast to double before comparing
-    return _goals.where((g) => (g['progress'] as double) >= 1.0).length;
-  }
 
   void _updateProgress(int index) {
     setState(() {
@@ -80,58 +70,29 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
         centerTitle: true,
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(onPressed: () {}, icon: const Icon(Icons.calendar_month)),
+        ],
       ),
       
       drawer: const MainDrawer(currentRoute: '/goals'),
 
       body: Column(
         children: [
-          // 1. Summary Card
-          Container(
-            padding: const EdgeInsets.all(20),
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              // ignore: deprecated_member_use
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+          // 1. The Dismissible Banner (Replaces the Summary Card)
+          if (_showBanner)
+            GoalInstructionBanner(
+              onDismiss: () {
+                setState(() {
+                  _showBanner = false;
+                });
+              },
             ),
-            child: Row(
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      value: _overallProgress,
-                      backgroundColor: Colors.grey[300],
-                      color: Colors.black, 
-                      strokeWidth: 8,
-                    ),
-                    Text(
-                      "${(_overallProgress * 100).toInt()}%",
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 20),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Daily Progress",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      "You have completed $_completedCount/${_goals.length} goals",
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
 
           // 2. Goal List
           Expanded(
             child: ListView.builder(
+              padding: const EdgeInsets.all(16),
               itemCount: _goals.length,
               itemBuilder: (context, index) {
                 final goal = _goals[index];
