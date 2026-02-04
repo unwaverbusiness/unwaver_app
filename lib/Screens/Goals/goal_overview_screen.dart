@@ -13,8 +13,10 @@ class GoalOverviewScreen extends StatefulWidget {
 
 class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
   bool _showBanner = true;
+  
+  // 1. ADDED: State to track if dashboard is open or closed
+  bool _isDashboardExpanded = true; 
 
-  // --- MOCK DATA (Now includes targetDate) ---
   final List<Map<String, dynamic>> _goals = [
     {
       "title": "Drink 2L Water",
@@ -22,7 +24,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       "progress": 0.5,
       "icon": Icons.local_drink,
       "color": Colors.blue,
-      "targetDate": DateTime.now(), // Ends This Year
+      "targetDate": DateTime.now(),
     },
     {
       "title": "Read 10 Pages",
@@ -30,7 +32,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       "progress": 0.8,
       "icon": Icons.book,
       "color": Colors.purple,
-      "targetDate": DateTime.now().add(const Duration(days: 400)), // Ends Next Year
+      "targetDate": DateTime.now().add(const Duration(days: 400)),
     },
     {
       "title": "Gym Workout",
@@ -38,7 +40,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       "progress": 0.0,
       "icon": Icons.fitness_center,
       "color": const Color.fromARGB(255, 0, 255, 213),
-      "targetDate": DateTime.now().add(const Duration(days: 365 * 4)), // Within 5 Years
+      "targetDate": DateTime.now().add(const Duration(days: 365 * 4)),
     },
     {
       "title": "Buy a House",
@@ -46,13 +48,12 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       "progress": 0.1,
       "icon": Icons.house,
       "color": Colors.orange,
-      "targetDate": DateTime.now().add(const Duration(days: 365 * 9)), // Within 10 Years
+      "targetDate": DateTime.now().add(const Duration(days: 365 * 9)),
     },
   ];
 
   void _updateProgress(int index) {
     setState(() {
-      // Safety check: ensure values exist
       double current = (_goals[index]['progress'] as double?) ?? 0.0;
       if (current >= 1.0) {
         _goals[index]['progress'] = 0.0;
@@ -69,12 +70,9 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
     );
   }
 
-  // --- STATISTICS LOGIC ---
   Map<String, String> _calculateStats() {
     final now = DateTime.now();
     final total = _goals.length;
-    
-    // Safety: handle cases where data might be null
     final completed = _goals.where((g) => (g['progress'] as double? ?? 0.0) >= 1.0).length;
 
     final currentYear = _goals.where((g) {
@@ -87,13 +85,11 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       return date != null && date.year == now.year + 1;
     }).length;
 
-    // "Within 5 Years" (Inclusive of today up to year + 5)
     final within5 = _goals.where((g) {
       final date = g['targetDate'] as DateTime?;
       return date != null && date.year <= now.year + 5;
     }).length;
 
-    // "Within 10 Years"
     final within10 = _goals.where((g) {
       final date = g['targetDate'] as DateTime?;
       return date != null && date.year <= now.year + 10;
@@ -113,8 +109,6 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       "Rate": "$percent%",
     };
   }
-
-  // --- WIDGET BUILDERS ---
 
   Widget _buildStatItem(String label, String value, {Color? color}) {
     return Column(
@@ -138,12 +132,13 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
     );
   }
 
+  // 2. UPDATED: Dashboard Builder
   Widget _buildDashboard() {
     final stats = _calculateStats();
     
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      // Removed padding here to allow InkWell to hit edges, applied internal padding instead
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -158,45 +153,85 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       ),
       child: Column(
         children: [
-          // Header
-          Row(
-            children: [
-              Icon(Icons.bar_chart, size: 16, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(
-                "GOAL SUMMARY",
-                style: TextStyle(
-                  fontSize: 12, 
-                  fontWeight: FontWeight.bold, 
-                  letterSpacing: 1.2,
-                  color: Colors.grey[800]
-                ),
+          // --- CLICKABLE HEADER ---
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isDashboardExpanded = !_isDashboardExpanded;
+              });
+            },
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16), bottom: Radius.circular(16)), // Smooth touch area
+            child: Padding(
+              padding: const EdgeInsets.all(16.0), // Padding moved inside
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.bar_chart, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Text(
+                        "GOAL SUMMARY",
+                        style: TextStyle(
+                          fontSize: 12, 
+                          fontWeight: FontWeight.bold, 
+                          letterSpacing: 1.2,
+                          color: Colors.grey[800]
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Arrow Icon changes based on state
+                  Icon(
+                    _isDashboardExpanded 
+                        ? Icons.keyboard_arrow_up 
+                        : Icons.keyboard_arrow_down,
+                    color: Colors.grey[600],
+                    size: 20,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-          const Divider(height: 24),
           
-          // Row 1: Timeline
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildStatItem("Total", stats["Total"]!),
-              _buildStatItem("This Year", stats["This Year"]!),
-              _buildStatItem("Next Year", stats["Next Year"]!),
-              _buildStatItem("< 5 Yrs", stats["5 Years"]!),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Row 2: Status
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildStatItem("< 10 Yrs", stats["10 Years"]!),
-              _buildStatItem("Done", stats["Done"]!, color: Colors.green[700]),
-              _buildStatItem("Active", stats["Pending"]!, color: Colors.orange[700]),
-              _buildStatItem("Rate", stats["Rate"]!, color: Colors.blue[700]),
-            ],
+          // --- EXPANDABLE CONTENT ---
+          // Using AnimatedSize for a smooth transition effect
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _isDashboardExpanded 
+              ? Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Column(
+                    children: [
+                      const Divider(height: 1),
+                      const SizedBox(height: 16),
+                      // Row 1: Timeline
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildStatItem("Total", stats["Total"]!),
+                          _buildStatItem("This Year", stats["This Year"]!),
+                          _buildStatItem("Next Year", stats["Next Year"]!),
+                          _buildStatItem("< 5 Yrs", stats["5 Years"]!),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Row 2: Status
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildStatItem("< 10 Yrs", stats["10 Years"]!),
+                          _buildStatItem("Done", stats["Done"]!, color: Colors.green[700]),
+                          _buildStatItem("Active", stats["Pending"]!, color: Colors.orange[700]),
+                          _buildStatItem("Rate", stats["Rate"]!, color: Colors.blue[700]),
+                        ],
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(), // Hides content when collapsed
           ),
         ],
       ),
@@ -206,7 +241,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Clean background
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const AppLogo(),
         centerTitle: true,
@@ -219,10 +254,8 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       drawer: const MainDrawer(currentRoute: '/goals'),
       body: Column(
         children: [
-          // 1. Dashboard
           _buildDashboard(),
 
-          // 2. Banner
           if (_showBanner)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -231,15 +264,12 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
               ),
             ),
 
-          // 3. Goal List
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
               itemCount: _goals.length,
               itemBuilder: (context, index) {
                 final goal = _goals[index];
-                
-                // Safe casting
                 final Color goalColor = (goal['color'] as Color?) ?? Colors.grey;
                 final IconData goalIcon = (goal['icon'] as IconData?) ?? Icons.error;
                 final double goalProgress = (goal['progress'] as double?) ?? 0.0;
@@ -247,11 +277,10 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                 final String goalSubtitle = (goal['subtitle'] as String?) ?? "";
 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12), // Spacing between items
+                  margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100], // Light Grey background
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
-                    // "Pop Out" Shadow Effect
                     boxShadow: [
                       BoxShadow(
                         color: Colors.grey.withOpacity(0.4),
@@ -285,7 +314,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                         const SizedBox(height: 8),
                         LinearProgressIndicator(
                           value: goalProgress,
-                          backgroundColor: Colors.white, // White track contrasts with grey container
+                          backgroundColor: Colors.white,
                           color: goalColor,
                           minHeight: 6,
                           borderRadius: BorderRadius.circular(4),

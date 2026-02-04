@@ -7,7 +7,7 @@ import 'package:unwaver/widgets/app_logo.dart';
 import '../Goals/goal_overview_screen.dart';
 import '../Habits/habits_screen.dart';
 import '../Tasks/tasks_screen.dart';
-import '../Calendar/calendar_screen.dart';
+import '../Schedule/schedule_screen.dart';
 
 // --- ADD THIS IMPORT ---
 // Update this path to wherever your MainLayout file is located (e.g., '../main_layout.dart')

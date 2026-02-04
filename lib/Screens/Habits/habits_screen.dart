@@ -12,8 +12,11 @@ class HabitsScreen extends StatefulWidget {
 }
 
 class _HabitsScreenState extends State<HabitsScreen> {
-  // 1. State variable to track if the banner is visible
+  // 1. Banner State
   bool _showBanner = true;
+  
+  // 2. ADDED: Dashboard Expansion State
+  bool _isDashboardExpanded = true;
 
   // Dummy data
   final List<Map<String, dynamic>> _habits = [
@@ -109,12 +112,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
     );
   }
 
+  // 3. UPDATED: Infographic Builder
   Widget _buildInfographic() {
     final stats = _calculateStats();
 
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      // Padding moved inside to allow InkWell edge-to-edge
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -130,33 +134,72 @@ class _HabitsScreenState extends State<HabitsScreen> {
       ),
       child: Column(
         children: [
-          // Infographic Header
-          Row(
-            children: [
-              Icon(Icons.bolt, size: 18, color: Colors.orange[700]),
-              const SizedBox(width: 8),
-              Text(
-                "STREAK DASHBOARD",
-                style: TextStyle(
-                  fontSize: 12, 
-                  fontWeight: FontWeight.bold, 
-                  letterSpacing: 1.2,
-                  color: Colors.grey[800]
-                ),
+          // --- CLICKABLE HEADER ---
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isDashboardExpanded = !_isDashboardExpanded;
+              });
+            },
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16), bottom: Radius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.bolt, size: 18, color: Colors.orange[700]),
+                      const SizedBox(width: 8),
+                      Text(
+                        "STREAK DASHBOARD",
+                        style: TextStyle(
+                          fontSize: 12, 
+                          fontWeight: FontWeight.bold, 
+                          letterSpacing: 1.2,
+                          color: Colors.grey[800]
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Arrow Icon Logic
+                  Icon(
+                    _isDashboardExpanded 
+                        ? Icons.keyboard_arrow_up 
+                        : Icons.keyboard_arrow_down,
+                    color: Colors.grey[600],
+                    size: 20,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-          const Divider(height: 24),
-
-          // Stats Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildStatItem("Best Streak", stats["Best Streak"]!, Icons.local_fire_department, Colors.orange),
-              _buildStatItem("Total Days", stats["Total Days"]!, Icons.history, Colors.purple),
-              _buildStatItem("Done Today", stats["Done"]!, Icons.check_circle, Colors.green),
-              _buildStatItem("Completion", stats["Rate"]!, Icons.pie_chart, Colors.blue),
-            ],
+          
+          // --- EXPANDABLE CONTENT ---
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _isDashboardExpanded
+              ? Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Column(
+                    children: [
+                      const Divider(height: 1),
+                      const SizedBox(height: 24),
+                      // Stats Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildStatItem("Best Streak", stats["Best Streak"]!, Icons.local_fire_department, Colors.orange),
+                          _buildStatItem("Total Days", stats["Total Days"]!, Icons.history, Colors.purple),
+                          _buildStatItem("Done Today", stats["Done"]!, Icons.check_circle, Colors.green),
+                          _buildStatItem("Completion", stats["Rate"]!, Icons.pie_chart, Colors.blue),
+                        ],
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
           ),
         ],
       ),

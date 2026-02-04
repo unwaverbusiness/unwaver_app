@@ -3,7 +3,7 @@ import 'Goals/goal_overview_screen.dart';
 import 'Habits/habits_screen.dart';
 import 'Home/purpose_generator_screen.dart';
 import 'Tasks/tasks_screen.dart';
-import 'Calendar/calendar_screen.dart';
+import 'Schedule/schedule_screen.dart';
 
 class MainLayout extends StatefulWidget {
   final int initialIndex;
@@ -102,7 +102,7 @@ class _MainLayoutState extends State<MainLayout> {
               NavigationDestination(
                 icon: Icon(Icons.calendar_today_outlined),
                 selectedIcon: Icon(Icons.calendar_month),
-                label: 'Calendar',
+                label: 'Schedule',
               ),
             ],
           ),
