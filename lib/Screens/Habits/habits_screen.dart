@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:unwaver/widgets/maindrawer.dart';
 import 'package:unwaver/widgets/app_logo.dart';
-import 'habit_creation_screen.dart'; // Ensure this matches your file name
+import 'habit_creation_screen.dart'; 
 import 'habit_instruction_banner.dart';
 
 class HabitsScreen extends StatefulWidget {
@@ -21,15 +21,22 @@ class _HabitsScreenState extends State<HabitsScreen> {
     {"title": "Drink 2L Water", "isCompleted": true, "streak": 5},
     {"title": "No Sugar", "isCompleted": false, "streak": 3},
     {"title": "Read 10 Pages", "isCompleted": false, "streak": 20},
+    {"title": "Cold Shower", "isCompleted": true, "streak": 8},
   ];
 
   void _toggleHabit(int index) {
     setState(() {
       _habits[index]['isCompleted'] = !_habits[index]['isCompleted'];
+      
+      // Simple logic to increment streak visually when checked
+      if (_habits[index]['isCompleted']) {
+        _habits[index]['streak'] += 1;
+      } else {
+        _habits[index]['streak'] -= 1;
+      }
     });
   }
 
-  // Navigation Helper
   void _navToCreation() {
     Navigator.push(
       context,
@@ -37,14 +44,138 @@ class _HabitsScreenState extends State<HabitsScreen> {
     );
   }
 
+  // --- INFOGRAPHIC LOGIC ---
+  Map<String, String> _calculateStats() {
+    final totalHabits = _habits.length;
+    final completedToday = _habits.where((h) => h['isCompleted'] == true).length;
+    
+    // 1. Best Streak: The highest streak in the list
+    int bestStreak = 0;
+    // 2. Total Days: Sum of all streaks (Gamification metric)
+    int totalStreakDays = 0;
+
+    if (_habits.isNotEmpty) {
+      for (var h in _habits) {
+        int s = h['streak'] as int;
+        if (s > bestStreak) bestStreak = s;
+        totalStreakDays += s;
+      }
+    }
+
+    final percent = totalHabits == 0 ? 0 : ((completedToday / totalHabits) * 100).toInt();
+
+    return {
+      "Best Streak": "$bestStreak",
+      "Total Days": "$totalStreakDays",
+      "Done": "$completedToday/$totalHabits",
+      "Rate": "$percent%",
+    };
+  }
+
+  // --- INFOGRAPHIC WIDGETS ---
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Icon Circle
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 20, color: color),
+        ),
+        const SizedBox(height: 8),
+        // Value
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: Colors.black87,
+          ),
+        ),
+        // Label
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10, 
+            color: Colors.grey[600], 
+            fontWeight: FontWeight.w600
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfographic() {
+    final stats = _calculateStats();
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        // Pop-out shadow effect
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          // Infographic Header
+          Row(
+            children: [
+              Icon(Icons.bolt, size: 18, color: Colors.orange[700]),
+              const SizedBox(width: 8),
+              Text(
+                "STREAK DASHBOARD",
+                style: TextStyle(
+                  fontSize: 12, 
+                  fontWeight: FontWeight.bold, 
+                  letterSpacing: 1.2,
+                  color: Colors.grey[800]
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+
+          // Stats Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStatItem("Best Streak", stats["Best Streak"]!, Icons.local_fire_department, Colors.orange),
+              _buildStatItem("Total Days", stats["Total Days"]!, Icons.history, Colors.purple),
+              _buildStatItem("Done Today", stats["Done"]!, Icons.check_circle, Colors.green),
+              _buildStatItem("Completion", stats["Rate"]!, Icons.pie_chart, Colors.blue),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- MAIN BUILD ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      
+      // 1. HEADER (APP BAR)
       appBar: AppBar(
         title: const AppLogo(),
         centerTitle: true,
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          // Only the Calendar icon remains here
           IconButton(onPressed: () {}, icon: const Icon(Icons.calendar_month)),
         ],
       ),
@@ -53,71 +184,87 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
       body: Column(
         children: [
-          // 2. The Instruction Banner (Conditionally rendered)
+          // 2. INFOGRAPHIC (SUMMARY)
+          _buildInfographic(),
+
+          // 3. INSTRUCTION BANNER
           if (_showBanner)
-            HabitInstructionBanner(
-              onDismiss: () {
-                // This updates the state to hide the banner and move the list up
-                setState(() {
-                  _showBanner = false;
-                });
-              },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: HabitInstructionBanner(
+                onDismiss: () {
+                  setState(() {
+                    _showBanner = false;
+                  });
+                },
+              ),
             ),
 
-          // 3. The List (Takes up remaining space)
+          // 4. HABIT LIST
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
               itemCount: _habits.length,
               itemBuilder: (context, index) {
                 final habit = _habits[index];
+                final bool isCompleted = habit['isCompleted'];
+
                 return Card(
                   elevation: 0,
-                  color: habit['isCompleted']
-                      // ignore: deprecated_member_use
+                  color: isCompleted
                       ? Colors.green.withOpacity(0.1)
-                      // ignore: deprecated_member_use
-                      : Colors.grey.withOpacity(0.05),
+                      : Colors.grey[100], 
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
-                      color: habit['isCompleted'] ? Colors.green : Colors.transparent,
+                      color: isCompleted ? Colors.green.withOpacity(0.5) : Colors.transparent,
+                      width: 1,
                     ),
                   ),
                   margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(
+                          color: isCompleted ? Colors.green : Colors.grey.shade300
+                        ),
                       ),
                       child: Icon(
-                        habit['isCompleted']
-                            ? Icons.check
-                            : Icons.local_fire_department,
-                        color: habit['isCompleted'] ? Colors.green : Colors.orange,
+                        isCompleted ? Icons.check : Icons.local_fire_department,
+                        color: isCompleted ? Colors.green : Colors.orange,
                         size: 20,
                       ),
                     ),
                     title: Text(
                       habit['title'],
                       style: TextStyle(
-                        decoration: habit['isCompleted']
-                            ? TextDecoration.lineThrough
-                            : null,
-                        fontWeight: FontWeight.w600,
-                        color: habit['isCompleted'] ? Colors.grey : Colors.black87,
+                        decoration: isCompleted ? TextDecoration.lineThrough : null,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: isCompleted ? Colors.grey[600] : Colors.black87,
                       ),
                     ),
-                    subtitle: Text("${habit['streak']} Day Streak"),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 6.0),
+                      child: Text(
+                        "${habit['streak']} Day Streak",
+                        style: TextStyle(
+                          color: isCompleted ? Colors.green[700] : Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12
+                        ),
+                      ),
+                    ),
                     trailing: IconButton(
                       onPressed: () => _toggleHabit(index),
                       icon: Icon(
-                        habit['isCompleted'] ? Icons.check_circle : Icons.cancel,
-                        color: habit['isCompleted'] ? Colors.lightGreen : Colors.red,
-                        size: 30,
+                        isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                        color: isCompleted ? Colors.green : Colors.grey[400],
+                        size: 32,
                       ),
                     ),
                   ),
@@ -128,10 +275,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
         ],
       ),
 
-      // The Floating Action Button handles the navigation
       floatingActionButton: FloatingActionButton(
         onPressed: _navToCreation,
-        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        backgroundColor: Colors.black,
+        elevation: 4,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );

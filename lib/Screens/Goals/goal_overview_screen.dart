@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:unwaver/widgets/maindrawer.dart';
 import 'package:unwaver/widgets/app_logo.dart';
 import 'goal_creation_screen.dart';
-// IMPORT FIX: Assuming 'Goals' is a sibling folder to 'Goals'
-import '../Goals/Goal_instruction_banner.dart'; 
+import '../Habits/habit_instruction_banner.dart';
 
 class GoalOverviewScreen extends StatefulWidget {
   const GoalOverviewScreen({super.key});
@@ -13,11 +12,9 @@ class GoalOverviewScreen extends StatefulWidget {
 }
 
 class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
-  // --- STATE LOGIC ---
-  
-  // 1. Add the visibility toggle for the banner
   bool _showBanner = true;
 
+  // --- MOCK DATA (Now includes targetDate) ---
   final List<Map<String, dynamic>> _goals = [
     {
       "title": "Drink 2L Water",
@@ -25,6 +22,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       "progress": 0.5,
       "icon": Icons.local_drink,
       "color": Colors.blue,
+      "targetDate": DateTime.now(), // Ends This Year
     },
     {
       "title": "Read 10 Pages",
@@ -32,6 +30,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       "progress": 0.8,
       "icon": Icons.book,
       "color": Colors.purple,
+      "targetDate": DateTime.now().add(const Duration(days: 400)), // Ends Next Year
     },
     {
       "title": "Gym Workout",
@@ -39,13 +38,22 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
       "progress": 0.0,
       "icon": Icons.fitness_center,
       "color": const Color.fromARGB(255, 0, 255, 213),
+      "targetDate": DateTime.now().add(const Duration(days: 365 * 4)), // Within 5 Years
+    },
+    {
+      "title": "Buy a House",
+      "subtitle": "Life • Saving",
+      "progress": 0.1,
+      "icon": Icons.house,
+      "color": Colors.orange,
+      "targetDate": DateTime.now().add(const Duration(days: 365 * 9)), // Within 10 Years
     },
   ];
 
   void _updateProgress(int index) {
     setState(() {
-      // FIX: Explicitly cast to double
-      double current = (_goals[index]['progress'] as double);
+      // Safety check: ensure values exist
+      double current = (_goals[index]['progress'] as double?) ?? 0.0;
       if (current >= 1.0) {
         _goals[index]['progress'] = 0.0;
       } else {
@@ -61,10 +69,144 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
     );
   }
 
-  // --- UI BUILD METHOD ---
+  // --- STATISTICS LOGIC ---
+  Map<String, String> _calculateStats() {
+    final now = DateTime.now();
+    final total = _goals.length;
+    
+    // Safety: handle cases where data might be null
+    final completed = _goals.where((g) => (g['progress'] as double? ?? 0.0) >= 1.0).length;
+
+    final currentYear = _goals.where((g) {
+      final date = g['targetDate'] as DateTime?;
+      return date != null && date.year == now.year;
+    }).length;
+
+    final nextYear = _goals.where((g) {
+      final date = g['targetDate'] as DateTime?;
+      return date != null && date.year == now.year + 1;
+    }).length;
+
+    // "Within 5 Years" (Inclusive of today up to year + 5)
+    final within5 = _goals.where((g) {
+      final date = g['targetDate'] as DateTime?;
+      return date != null && date.year <= now.year + 5;
+    }).length;
+
+    // "Within 10 Years"
+    final within10 = _goals.where((g) {
+      final date = g['targetDate'] as DateTime?;
+      return date != null && date.year <= now.year + 10;
+    }).length;
+
+    final notCompleted = total - completed;
+    final percent = total == 0 ? 0 : ((completed / total) * 100).toInt();
+
+    return {
+      "Total": "$total",
+      "This Year": "$currentYear",
+      "Next Year": "$nextYear",
+      "5 Years": "$within5",
+      "10 Years": "$within10",
+      "Done": "$completed",
+      "Pending": "$notCompleted",
+      "Rate": "$percent%",
+    };
+  }
+
+  // --- WIDGET BUILDERS ---
+
+  Widget _buildStatItem(String label, String value, {Color? color}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: color ?? Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.w500),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDashboard() {
+    final stats = _calculateStats();
+    
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(Icons.bar_chart, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(
+                "GOAL SUMMARY",
+                style: TextStyle(
+                  fontSize: 12, 
+                  fontWeight: FontWeight.bold, 
+                  letterSpacing: 1.2,
+                  color: Colors.grey[800]
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          
+          // Row 1: Timeline
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStatItem("Total", stats["Total"]!),
+              _buildStatItem("This Year", stats["This Year"]!),
+              _buildStatItem("Next Year", stats["Next Year"]!),
+              _buildStatItem("< 5 Yrs", stats["5 Years"]!),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Row 2: Status
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStatItem("< 10 Yrs", stats["10 Years"]!),
+              _buildStatItem("Done", stats["Done"]!, color: Colors.green[700]),
+              _buildStatItem("Active", stats["Pending"]!, color: Colors.orange[700]),
+              _buildStatItem("Rate", stats["Rate"]!, color: Colors.blue[700]),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Clean background
       appBar: AppBar(
         title: const AppLogo(),
         centerTitle: true,
@@ -74,76 +216,98 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
           IconButton(onPressed: () {}, icon: const Icon(Icons.calendar_month)),
         ],
       ),
-      
       drawer: const MainDrawer(currentRoute: '/goals'),
-
       body: Column(
         children: [
-          // 1. The Dismissible Banner (Replaces the Summary Card)
+          // 1. Dashboard
+          _buildDashboard(),
+
+          // 2. Banner
           if (_showBanner)
-            GoalInstructionBanner(
-              onDismiss: () {
-                setState(() {
-                  _showBanner = false;
-                });
-              },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: HabitInstructionBanner(
+                onDismiss: () => setState(() => _showBanner = false),
+              ),
             ),
 
-          // 2. Goal List
+          // 3. Goal List
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
               itemCount: _goals.length,
               itemBuilder: (context, index) {
                 final goal = _goals[index];
                 
-                // FIX: Cast variables for safety
-                final Color goalColor = goal['color'] as Color;
-                final IconData goalIcon = goal['icon'] as IconData;
-                final double goalProgress = goal['progress'] as double;
-                final String goalTitle = goal['title'] as String;
-                final String goalSubtitle = goal['subtitle'] as String;
+                // Safe casting
+                final Color goalColor = (goal['color'] as Color?) ?? Colors.grey;
+                final IconData goalIcon = (goal['icon'] as IconData?) ?? Icons.error;
+                final double goalProgress = (goal['progress'] as double?) ?? 0.0;
+                final String goalTitle = (goal['title'] as String?) ?? "Untitled";
+                final String goalSubtitle = (goal['subtitle'] as String?) ?? "";
 
-                return ListTile(
-                  leading: GestureDetector(
-                    onTap: () => _updateProgress(index),
-                    child: CircleAvatar(
-                      // ignore: deprecated_member_use
-                      backgroundColor: goalColor.withOpacity(0.2),
-                      child: Icon(goalIcon, color: goalColor),
-                    ),
-                  ),
-                  title: Text(goalTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(goalSubtitle),
-                      const SizedBox(height: 5),
-                      LinearProgressIndicator(
-                        value: goalProgress,
-                        backgroundColor: Colors.grey[200],
-                        color: goalColor,
-                        minHeight: 5,
-                        borderRadius: BorderRadius.circular(5),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12), // Spacing between items
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100], // Light Grey background
+                    borderRadius: BorderRadius.circular(12),
+                    // "Pop Out" Shadow Effect
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.4),
+                        spreadRadius: 1,
+                        blurRadius: 6,
+                        offset: const Offset(0, 3), 
                       ),
                     ],
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.add_circle_outline),
-                    color: Colors.grey,
-                    onPressed: () => _updateProgress(index),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: GestureDetector(
+                      onTap: () => _updateProgress(index),
+                      child: CircleAvatar(
+                        backgroundColor: goalColor.withOpacity(0.15),
+                        child: Icon(goalIcon, color: goalColor),
+                      ),
+                    ),
+                    title: Text(
+                      goalTitle, 
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        Text(
+                          goalSubtitle, 
+                          style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                        ),
+                        const SizedBox(height: 8),
+                        LinearProgressIndicator(
+                          value: goalProgress,
+                          backgroundColor: Colors.white, // White track contrasts with grey container
+                          color: goalColor,
+                          minHeight: 6,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ],
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      color: Colors.grey[600],
+                      onPressed: () => _updateProgress(index),
+                    ),
                   ),
-                  isThreeLine: true,
                 );
               },
             ),
           ),
         ],
       ),
-
       floatingActionButton: FloatingActionButton(
         onPressed: _navToCreation,
         backgroundColor: Colors.black,
+        elevation: 4,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
