@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+// Ensure these imports point to your actual file locations
 import 'package:unwaver/widgets/maindrawer.dart';
 import 'package:unwaver/widgets/app_logo.dart';
 
@@ -9,7 +10,7 @@ class Event {
   final String id;
   String title;
   String description;
-  final DateTime date; // Fixed: Explicit DateTime required
+  final DateTime date;
   TimeOfDay time;
   String category;
   final int durationMinutes; 
@@ -43,39 +44,50 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
   // Dashboard State
   bool _isDashboardExpanded = true;
 
-  // Filter Toggles
+  // Search State
+  bool _isSearching = false;
+  late TextEditingController _searchController;
+
+  // Filter State
   bool _showEvents = true;
-  bool _showHabits = false;
-  bool _showTasks = false;
+  bool _showHabits = true;
+  bool _showTasks = true;
+  String _selectedCategoryFilter = "All"; 
 
   late Map<DateTime, List<Event>> _events;
   bool _isSyncing = false;
 
   // Colors
   final Color _goldColor = const Color(0xFFD4AF37); 
-  final Color _bgGrey = const Color(0xFFF8F9FA); 
-
+  
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
+    _searchController = TextEditingController();
     _events = {};
     _addDummyData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _addDummyData() {
     final now = DateTime.now();
     
-    // Helper to add event safely
+    // Helper to safely add events
     void add(DateTime d, String title, String cat) {
-      // Normalize key to midnight for map lookups
+      // Normalize key to midnight (removes time info for the Map key)
       final key = DateTime(d.year, d.month, d.day);
       
       final ev = Event(
-        id: DateTime.now().microsecondsSinceEpoch.toString() + title, // Unique ID
+        id: DateTime.now().microsecondsSinceEpoch.toString() + title,
         title: title, 
         description: "", 
-        date: d, // Explicit date passed here
+        date: d, 
         time: TimeOfDay(hour: d.hour, minute: d.minute), 
         category: cat
       );
@@ -84,33 +96,37 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
       _events[key]!.add(ev);
     }
 
-    // Today
     add(now, 'Deep Work', 'Deep Work');
     add(now.add(const Duration(hours: 3)), 'Team Sync', 'Meeting');
-    
-    // This Week
     add(now.add(const Duration(days: 2)), 'Client Call', 'Meeting');
     add(now.add(const Duration(days: 3)), 'Project Review', 'Deep Work');
-
-    // 2 Weeks
     add(now.add(const Duration(days: 9)), 'Dentist', 'Health');
-    
-    // Month
     add(now.add(const Duration(days: 20)), 'Monthly Report', 'Deep Work');
-
-    // 6 Months
     add(now.add(const Duration(days: 90)), 'Quarterly Review', 'Meeting');
     add(now.add(const Duration(days: 150)), 'Product Launch', 'Deep Work');
-
-    // Year
     add(now.add(const Duration(days: 300)), 'Year End Party', 'Other');
   }
 
   // --- LOGIC ---
 
   List<Event> _getEventsForDay(DateTime day) {
+    // Normalize lookup date to midnight
     final normalizedDate = DateTime(day.year, day.month, day.day);
-    final events = _events[normalizedDate] ?? [];
+    var events = _events[normalizedDate] ?? [];
+    
+    // 1. Filter by Search Query
+    if (_searchController.text.isNotEmpty) {
+      events = events.where((e) => 
+        e.title.toLowerCase().contains(_searchController.text.toLowerCase())
+      ).toList();
+    }
+
+    // 2. Filter by Category (if not "All")
+    if (_selectedCategoryFilter != "All") {
+      events = events.where((e) => e.category == _selectedCategoryFilter).toList();
+    }
+
+    // Sort by time
     events.sort((a, b) {
       final aMinutes = a.time.hour * 60 + a.time.minute;
       final bMinutes = b.time.hour * 60 + b.time.minute;
@@ -123,8 +139,6 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
     if (_selectedDay == null) return;
     final d = _selectedDay!;
     final normalizedDate = DateTime(d.year, d.month, d.day);
-    
-    // Combine date + time
     final fullDate = DateTime(d.year, d.month, d.day, time.hour, time.minute);
 
     final newEvent = Event(
@@ -165,7 +179,6 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
     }
   }
 
-  // --- STATS CALCULATION (Fixes Type Error) ---
   Map<String, String> _calculateDetailedStats() {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
@@ -184,9 +197,12 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
 
     _events.forEach((key, list) {
       for (var e in list) {
-        // Safe check: Ensure date is not null (though model requires it now)
-        if (e.date.isBefore(todayStart)) continue;
+        // Respect Category Filter in Stats? 
+        // Uncomment next line if stats should ONLY show filtered category
+        // if (_selectedCategoryFilter != "All" && e.category != _selectedCategoryFilter) continue;
 
+        if (e.date.isBefore(todayStart)) continue;
+        
         if (e.date.isBefore(todayStart.add(const Duration(days: 1)))) cToday++;
         if (e.date.isBefore(nextWeek)) cWeek++;
         if (e.date.isBefore(next2Weeks)) c2Weeks++;
@@ -207,6 +223,87 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
   }
 
   // --- BOTTOM SHEETS ---
+
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        // StatefulBuilder allows the switches inside the modal to update visually
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: Container(width: 40, height: 4, color: Colors.grey[300])),
+                  const SizedBox(height: 20),
+                  Text("Filter Options", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _goldColor)),
+                  const SizedBox(height: 20),
+                  
+                  // Toggle Switches
+                  SwitchListTile(
+                    title: const Text("Show Events"),
+                    activeColor: _goldColor,
+                    value: _showEvents, 
+                    onChanged: (val) {
+                      setModalState(() => _showEvents = val);
+                      setState(() {}); // Update parent screen
+                    }
+                  ),
+                  SwitchListTile(
+                    title: const Text("Show Habits"),
+                    activeColor: _goldColor,
+                    value: _showHabits, 
+                    onChanged: (val) {
+                      setModalState(() => _showHabits = val);
+                      setState(() {}); // Update parent screen
+                    }
+                  ),
+                  SwitchListTile(
+                    title: const Text("Show Tasks"),
+                    activeColor: _goldColor,
+                    value: _showTasks, 
+                    onChanged: (val) {
+                      setModalState(() => _showTasks = val);
+                      setState(() {}); // Update parent screen
+                    }
+                  ),
+                  
+                  const Divider(height: 30),
+                  const Text("Category", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 10),
+                  
+                  Wrap(
+                    spacing: 8,
+                    children: ["All", "Deep Work", "Meeting", "Health", "Other"].map((cat) {
+                      final isSelected = _selectedCategoryFilter == cat;
+                      return ChoiceChip(
+                        label: Text(cat),
+                        selected: isSelected,
+                        selectedColor: _goldColor,
+                        labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
+                        onSelected: (selected) {
+                          if (selected) {
+                            setModalState(() => _selectedCategoryFilter = cat);
+                            setState(() {}); // Update parent screen
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          }
+        );
+      },
+    );
+  }
 
   void _showSyncOptions() {
     showModalBottomSheet(
@@ -363,7 +460,7 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
                       Icon(Icons.dashboard_outlined, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 8),
                       Text(
-                        "EVENTS DASHBOARD",
+                        "EVENTS FORECAST",
                         style: TextStyle(
                           fontSize: 12, 
                           fontWeight: FontWeight.bold, 
@@ -425,7 +522,7 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
 
   Widget _buildDashStat(String label, String value, {Color? color}) {
     return SizedBox(
-      width: 80, // Fixed width for alignment
+      width: 80, 
       child: Column(
         children: [
           Text(
@@ -447,42 +544,6 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildFilterBar() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          _buildFilterChip("Events", _showEvents, (val) => setState(() => _showEvents = val)),
-          const SizedBox(width: 8),
-          _buildFilterChip("Habits", _showHabits, (val) => setState(() => _showHabits = val)),
-          const SizedBox(width: 8),
-          _buildFilterChip("Tasks", _showTasks, (val) => setState(() => _showTasks = val)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, bool isSelected, Function(bool) onSelected) {
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: onSelected,
-      backgroundColor: Colors.white,
-      selectedColor: _goldColor,
-      checkmarkColor: Colors.black,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.black : Colors.grey[600],
-        fontWeight: FontWeight.bold,
-        fontSize: 12
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: isSelected ? Colors.transparent : Colors.grey.shade300),
-      ),
-    );
-  }
-
   // --- MAIN BUILD ---
 
   @override
@@ -492,25 +553,67 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const AppLogo(),
+        // EXPANDABLE SEARCH BAR
+        title: _isSearching
+          ? TextField(
+              controller: _searchController,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white),
+              cursorColor: _goldColor,
+              decoration: const InputDecoration(
+                hintText: "Search events...",
+                hintStyle: TextStyle(color: Colors.white60),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero
+              ),
+              onChanged: (val) => setState(() {}),
+            )
+          // Removed 'const' to prevent errors if your AppLogo isn't const
+          : AppLogo(),
         centerTitle: true,
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
+        leading: _isSearching
+          ? IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                setState(() {
+                  _isSearching = false;
+                  _searchController.clear();
+                });
+              },
+            )
+          : null, // Shows Drawer automatically
         actions: [
-          IconButton(
-            icon: Icon(_isSyncing ? Icons.hourglass_top : Icons.sync, color: Colors.white),
-            onPressed: _showSyncOptions,
-          ),
+          if (!_isSearching) ...[
+            // 1. SEARCH ICON
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () {
+                setState(() => _isSearching = true);
+              },
+            ),
+            // 2. FILTER ICON
+            IconButton(
+              icon: const Icon(Icons.filter_list),
+              onPressed: _showFilterSheet,
+            ),
+            // 3. SYNC ICON
+            IconButton(
+              icon: Icon(_isSyncing ? Icons.hourglass_top : Icons.sync, color: Colors.white),
+              onPressed: _showSyncOptions,
+            ),
+          ]
         ],
       ),
-      drawer: const MainDrawer(currentRoute: '/calendar'),
+      // Removed 'const' here as well just in case
+      drawer: MainDrawer(currentRoute: '/calendar'),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
         onPressed: _showAddEventSheet,
         child: Icon(Icons.add, color: _goldColor),
       ),
       
-      // Use Column so Dashboard stays fixed at top
       body: Column(
         children: [
           // 1. DASHBOARD (Fixed / Frozen)
@@ -521,7 +624,7 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // A. CALENDAR (Now scrolls)
+                  // A. CALENDAR
                   Container(
                     color: Colors.white,
                     padding: const EdgeInsets.only(bottom: 16),
@@ -559,9 +662,27 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
                     ),
                   ),
 
-                  // B. FILTERS & BANNER
+                  // B. BANNER & ACTIVE FILTER INFO
                   if (_showBanner) _buildBanner(),
-                  _buildFilterBar(),
+                  
+                  if (_selectedCategoryFilter != "All" || _searchController.text.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.filter_alt, size: 14, color: _goldColor),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              "Filtering: ${_selectedCategoryFilter == 'All' ? '' : '$_selectedCategoryFilter '}${_searchController.text.isNotEmpty ? '"${_searchController.text}"' : ''}",
+                              style: TextStyle(color: _goldColor, fontSize: 12, fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   const SizedBox(height: 16),
 
                   // C. EVENTS LIST
@@ -569,7 +690,13 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
                      Center(
                        child: Padding(
                          padding: const EdgeInsets.all(40.0),
-                         child: Text("No events for this day", style: TextStyle(color: Colors.grey[400])),
+                         child: Column(
+                           children: [
+                             Icon(Icons.search_off, size: 40, color: Colors.grey[300]),
+                             const SizedBox(height: 10),
+                             Text("No events found", style: TextStyle(color: Colors.grey[400])),
+                           ],
+                         ),
                        ),
                      )
                   else
