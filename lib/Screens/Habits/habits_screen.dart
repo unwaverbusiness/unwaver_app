@@ -152,7 +152,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                       Icon(Icons.bolt, size: 18, color: Colors.orange[700]),
                       const SizedBox(width: 8),
                       Text(
-                        "STREAK DASHBOARD",
+                        "HABITS DASHBOARD",
                         style: TextStyle(
                           fontSize: 12, 
                           fontWeight: FontWeight.bold, 

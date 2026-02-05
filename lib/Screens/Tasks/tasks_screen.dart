@@ -182,7 +182,7 @@ class _TasksScreenState extends State<TasksScreen> {
                       const Icon(Icons.analytics_outlined, size: 18, color: Color.fromARGB(255, 187, 142, 19)),
                       const SizedBox(width: 8),
                       Text(
-                        "TASK OVERVIEW",
+                        "TASKS DASHBOARD",
                         style: TextStyle(
                           fontSize: 12, 
                           fontWeight: FontWeight.bold, 

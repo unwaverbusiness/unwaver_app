@@ -171,7 +171,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                       Icon(Icons.bar_chart, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 8),
                       Text(
-                        "GOAL SUMMARY",
+                        "GOALS DASHBOARD",
                         style: TextStyle(
                           fontSize: 12, 
                           fontWeight: FontWeight.bold, 
