@@ -144,7 +144,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -283,7 +283,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.4),
+                        color: Colors.grey.withValues(alpha:0.4),
                         spreadRadius: 1,
                         blurRadius: 6,
                         offset: const Offset(0, 3), 
@@ -295,7 +295,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                     leading: GestureDetector(
                       onTap: () => _updateProgress(index),
                       child: CircleAvatar(
-                        backgroundColor: goalColor.withOpacity(0.15),
+                        backgroundColor: goalColor.withValues(alpha:0.15),
                         child: Icon(goalIcon, color: goalColor),
                       ),
                     ),

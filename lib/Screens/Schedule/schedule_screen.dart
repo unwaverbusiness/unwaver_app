@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:intl/intl.dart';
 // Ensure these imports point to your actual file locations
 import 'package:unwaver/widgets/maindrawer.dart';
 import 'package:unwaver/widgets/app_logo.dart';
@@ -247,7 +246,7 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
                   // Toggle Switches
                   SwitchListTile(
                     title: const Text("Show Events"),
-                    activeColor: _goldColor,
+                    activeThumbColor: _goldColor,
                     value: _showEvents, 
                     onChanged: (val) {
                       setModalState(() => _showEvents = val);
@@ -256,7 +255,7 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
                   ),
                   SwitchListTile(
                     title: const Text("Show Habits"),
-                    activeColor: _goldColor,
+                    activeThumbColor: _goldColor,
                     value: _showHabits, 
                     onChanged: (val) {
                       setModalState(() => _showHabits = val);
@@ -265,7 +264,7 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
                   ),
                   SwitchListTile(
                     title: const Text("Show Tasks"),
-                    activeColor: _goldColor,
+                    activeThumbColor: _goldColor,
                     value: _showTasks, 
                     onChanged: (val) {
                       setModalState(() => _showTasks = val);
@@ -403,9 +402,9 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _goldColor.withOpacity(0.1),
+        color: _goldColor.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _goldColor.withOpacity(0.3)),
+        border: Border.all(color: _goldColor.withValues(alpha:0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,7 +436,7 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )

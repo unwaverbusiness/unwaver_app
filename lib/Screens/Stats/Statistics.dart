@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:unwaver/widgets/maindrawer.dart';
@@ -23,12 +25,12 @@ class StatisticsScreen extends StatefulWidget {
 class _StatisticsScreenState extends State<StatisticsScreen> {
   // --- MOCK DATA FOR STATISTICS ---
   // Removed 'final' so these can be updated in a real app later
-  int _totalGoals = 3;
-  double _avgGoalCompletion = 0.65; // 65%
-  int _activeHabits = 4;
-  int _currentStreak = 12; // Days
-  int _tasksToday = 8;
-  int _tasksDone = 5;
+  final int _totalGoals = 3;
+  final double _avgGoalCompletion = 0.65; // 65%
+  final int _activeHabits = 4;
+  final int _currentStreak = 12; // Days
+  final int _tasksToday = 8;
+  final int _tasksDone = 5;
 
   // Navigation Helper
   void _navigateTo(Widget screen) {
@@ -213,7 +215,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha:0.05),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.calendar_today, color: Colors.black),
@@ -278,7 +280,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha:0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

@@ -27,14 +27,14 @@ class HabitCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? accentColor.withOpacity(0.15) : Colors.black,
+          color: isSelected ? accentColor.withValues(alpha:0.15) : Colors.black,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? accentColor : Colors.grey.withOpacity(0.3),
+            color: isSelected ? accentColor : Colors.grey.withValues(alpha:0.3),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
-              ? [BoxShadow(color: accentColor.withOpacity(0.2), blurRadius: 8)]
+              ? [BoxShadow(color: accentColor.withValues(alpha:0.2), blurRadius: 8)]
               : [],
         ),
         child: Row(
@@ -42,7 +42,7 @@ class HabitCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isSelected ? accentColor : Colors.grey.withOpacity(0.1),
+                color: isSelected ? accentColor : Colors.grey.withValues(alpha:0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(

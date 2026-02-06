@@ -28,7 +28,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
   final TextEditingController _purposeController = TextEditingController(text: "I build systems that empower others to find freedom.");
   
   // OPTIMIZED FIX: Defined as nullable list to allow for the safety check below
-  final List<String>? _coreValues = ["Discipline", "Clarity", "Impact", "Growth"];
+  final List<String> _coreValues = ["Discipline", "Clarity", "Impact", "Growth"];
 
   @override
   void initState() {
@@ -162,14 +162,15 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
 
             const SizedBox(height: 20),
 
-            // 2. CORE VALUES WIDGET
+          // 2. CORE VALUES WIDGET
             _buildFloatingCard(
               title: "Core Values",
               icon: Icons.diamond,
               child: Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: (_coreValues ?? []).map((value) => Chip( // <--- THE FIX: Added safety check (?? [])
+                // FIX: Removed (?? []) because the list is already initialized and cannot be null
+                children: _coreValues.map((value) => Chip( 
                   label: Text(value),
                   backgroundColor: Colors.black,
                   labelStyle: const TextStyle(color: Colors.white),
@@ -177,25 +178,24 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
                 )).toList(),
               ),
             ),
-
             const SizedBox(height: 20),
 
-                        // 2. PILLARS OF LIFE WIDGET
+          // 2. CORE VALUES WIDGET
             _buildFloatingCard(
-              title: "Define the 7 Pillars of Life",
-              icon: Icons.account_balance,
+              title: "Core Values",
+              icon: Icons.diamond,
               child: Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: (_coreValues ?? []).map((value) => Chip( // <--- THE FIX: Added safety check (?? [])
+                // FIX: Removed (?? []) because the list is already initialized and cannot be null
+                children: _coreValues.map((value) => Chip( 
                   label: Text(value),
                   backgroundColor: Colors.black,
                   labelStyle: const TextStyle(color: Colors.white),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 )).toList(),
               ),
-            ),
-
+            ),  
             const SizedBox(height: 20),
 
             // 3. IDENTITY STATEMENTS
@@ -240,13 +240,13 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
         boxShadow: [
           BoxShadow(
             // ignore: deprecated_member_use
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha:0.1),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
         ],
         border: goldAccent 
-          ? Border.all(color: const Color(0xFFBB8E13).withOpacity(0.5), width: 1.5)
+          ? Border.all(color: const Color(0xFFBB8E13).withValues(alpha:0.5), width: 1.5)
           : null,
       ),
       child: Column(

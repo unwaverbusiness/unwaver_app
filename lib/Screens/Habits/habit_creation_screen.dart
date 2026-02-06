@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Add intl to pubspec.yaml if missing
+import 'package:flutter/foundation.dart';
 
 class HabitCreationScreen extends StatefulWidget {
   const HabitCreationScreen({super.key});
@@ -86,7 +87,9 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
         'deadline': _deadline,
       };
 
-      print("Habit Created: $newHabit"); // Debug print
+      if (kDebugMode) {
+        print("Habit Created: $newHabit");
+      } // Debug print
       Navigator.pop(context); // Go back to previous screen
     }
   }

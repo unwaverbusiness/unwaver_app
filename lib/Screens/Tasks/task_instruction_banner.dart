@@ -15,10 +15,10 @@ class TaskInstructionBanner extends StatelessWidget {
       // Reduced bottom padding to tighten the layout
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4), 
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 155, 151, 151).withOpacity(0.1),
+        color: const Color.fromARGB(255, 155, 151, 151).withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFD4AF37).withOpacity(0.3),
+          color: const Color(0xFFD4AF37).withValues(alpha:0.3),
           width: 1,
         ),
       ),
