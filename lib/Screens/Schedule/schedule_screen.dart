@@ -610,7 +610,7 @@ class _CalendarScreenState extends State<CalendarScreen> with TickerProviderStat
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
         onPressed: _showAddEventSheet,
-        child: Icon(Icons.add, color: _goldColor),
+        child: Icon(Icons.add, color: Colors.white),
       ),
       
       body: Column(
