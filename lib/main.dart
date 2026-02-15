@@ -4,8 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'firebase_options.dart';
-import 'services/app_data_service.dart';
-import 'Screens/main_layout.dart';
+import 'services/app_data_service.dart'; // Lowercase folder
+// ignore: unused_import
+import 'screens/main_layout.dart';      // Lowercase folder
+
+// FIX: Package name is 'unwaver_app' + lowercase path
+import 'package:unwaver/screens/onboarding/onboarding_screen.dart'; 
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,11 +47,11 @@ class UnwaverApp extends StatelessWidget {
           
           // 1. Force the AppBar to be Black with White Text
           appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.black, // Background color
-            foregroundColor: Colors.white, // Text & Icon color
+            backgroundColor: Colors.black, 
+            foregroundColor: Colors.white, 
             centerTitle: true,
             elevation: 0,
-            iconTheme: IconThemeData(color: Colors.white), // Drawer/Back icons
+            iconTheme: IconThemeData(color: Colors.white),
             titleTextStyle: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -55,11 +59,12 @@ class UnwaverApp extends StatelessWidget {
             ),
           ),
           
-          // 2. Optional: Ensure Scaffold background is white (or change to black if you want dark mode)
+          // 2. Scaffold background
           scaffoldBackgroundColor: Colors.white,
         ),
         
-        home: const MainLayout(),
+        // Set Onboarding as the initial screen
+        home: const OnboardingScreen(),
       ),
     );
   }
