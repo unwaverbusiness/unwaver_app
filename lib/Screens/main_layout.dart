@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'Goals/goal_overview_screen.dart';
 import 'Habits/habits_screen.dart';
-import 'Home/purpose_generator_screen.dart';
+import 'home/purpose_generator_screen.dart';
 import 'Tasks/tasks_screen.dart';
 import 'Schedule/schedule_screen.dart';
 

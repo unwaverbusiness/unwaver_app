@@ -83,7 +83,7 @@ class _TaskCreationScreenState extends State<TaskCreationScreen> {
         'isDone': false,
       };
 
-      print("Task Created: $newTask"); // Debug print
+      debugPrint("Task Created: $newTask"); // Debug print
       Navigator.pop(context); // Return to Tasks Screen
     }
   }

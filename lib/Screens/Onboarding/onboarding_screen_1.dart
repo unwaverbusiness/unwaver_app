@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:unwaver/widgets/app_logo.dart'; // Assuming this exists based on your code
+// Assuming this exists based on your code
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -122,7 +122,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha:0.2),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -168,7 +168,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 border: Border.all(color: Colors.grey.shade100),
                 boxShadow: [
                    BoxShadow(
-                    color: Colors.black.withOpacity(0.05), // Matching your alpha: 0.05
+                    color: Colors.black.withValues(alpha:0.05), // Matching your alpha: 0.05
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   )

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:unwaver/services/api_key_manager.dart';
-import 'package:unwaver/widgets/maindrawer.dart'; 
+import 'package:unwaver/widgets/main_drawer.dart'; 
 import 'package:unwaver/widgets/app_logo.dart';
 
 class PurposeGeneratorScreen extends StatefulWidget {

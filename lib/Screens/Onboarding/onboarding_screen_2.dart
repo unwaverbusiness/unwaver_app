@@ -33,7 +33,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
     } else {
       // Navigate to your main app here
-      print("Onboarding Finished");
+      debugPrint("Onboarding Finished");
       // Navigator.pushReplacementNamed(context, '/home');
     }
   }
@@ -53,7 +53,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: TextButton(
                 onPressed: () {
                    // Add Skip Logic Here
-                   print("Skip Pressed");
+                   debugPrint("Skip Pressed");
                 },
                 child: Text(
                   "Skip",
@@ -159,7 +159,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha:0.2),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -319,7 +319,7 @@ class _GoalCard extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha:0.08),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -333,7 +333,7 @@ class _GoalCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha:0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 20),

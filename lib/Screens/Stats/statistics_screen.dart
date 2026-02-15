@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 // USING RELATIVE IMPORT to avoid path errors. 
 // Adjust the number of "../" based on your folder structure.
-import '../../widgets/MainDrawer.dart'; 
+import 'package:unwaver/widgets/main_drawer.dart'; 
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});

@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 // 1. IMPORT THE SCREENS
 import 'package:unwaver/Screens/Stats/statistics.dart'; 
-import 'package:unwaver/Screens/Settings/settings_screen.dart'; // Add this import
+import 'package:unwaver/Screens/settings/settings_screen.dart'; // Add this import
 
 class MainDrawer extends StatelessWidget {
   final String currentRoute;
