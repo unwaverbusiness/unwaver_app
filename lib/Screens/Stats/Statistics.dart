@@ -209,7 +209,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             // --- ROW 3: CALENDAR SUMMARY ---
             _buildStatCard(
               title: "Upcoming",
-              onTap: () => _navigateTo(const CalendarScreen()),
+              onTap: () => _navigateTo(const ScheduleScreen()),
               child: Row(
                 children: [
                   Container(

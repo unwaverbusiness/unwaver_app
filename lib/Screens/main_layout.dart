@@ -31,7 +31,7 @@ class _MainLayoutState extends State<MainLayout> {
     const HabitsScreen(),
     const PurposeGeneratorScreen(),
     const TasksScreen(),
-    const CalendarScreen(),
+    const ScheduleScreen(),
   ];
 
   void _onItemTapped(int index) {
