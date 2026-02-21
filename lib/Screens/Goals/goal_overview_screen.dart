@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:unwaver/widgets/main_drawer.dart';
-import 'package:unwaver/widgets/app_logo.dart';
+import 'package:unwaver/widgets/global_app_bar.dart'; // Make sure this path is correct
 import 'goal_creation_screen.dart';
 import '../Habits/habit_instruction_banner.dart';
 
@@ -12,9 +12,13 @@ class GoalOverviewScreen extends StatefulWidget {
 }
 
 class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
+  // --- TOP BAR STATE ---
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
   bool _showBanner = true;
   
-  // 1. ADDED: State to track if dashboard is open or closed
+  // State to track if dashboard is open or closed
   bool _isDashboardExpanded = true; 
 
   final List<Map<String, dynamic>> _goals = [
@@ -52,13 +56,25 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
     },
   ];
 
-  void _updateProgress(int index) {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _updateProgress(int index, List<Map<String, dynamic>> activeList) {
     setState(() {
-      double current = (_goals[index]['progress'] as double?) ?? 0.0;
-      if (current >= 1.0) {
-        _goals[index]['progress'] = 0.0;
-      } else {
-        _goals[index]['progress'] = (current + 0.25).clamp(0.0, 1.0);
+      // Find the actual goal in the master list so updates work while searching
+      final goalTitle = activeList[index]['title'];
+      final masterIndex = _goals.indexWhere((g) => g['title'] == goalTitle);
+      
+      if (masterIndex != -1) {
+        double current = (_goals[masterIndex]['progress'] as double?) ?? 0.0;
+        if (current >= 1.0) {
+          _goals[masterIndex]['progress'] = 0.0;
+        } else {
+          _goals[masterIndex]['progress'] = (current + 0.25).clamp(0.0, 1.0);
+        }
       }
     });
   }
@@ -67,6 +83,33 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const GoalCreationScreen()),
+    );
+  }
+
+  // --- TOP BAR ACTION SHEETS ---
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        height: 300,
+        child: const Center(child: Text("Filter Goals (Coming Soon)", style: TextStyle(fontWeight: FontWeight.bold))),
+      ),
+    );
+  }
+
+  void _showSortSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        height: 300,
+        child: const Center(child: Text("Sort Goals (Coming Soon)", style: TextStyle(fontWeight: FontWeight.bold))),
+      ),
     );
   }
 
@@ -132,13 +175,11 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
     );
   }
 
-  // 2. UPDATED: Dashboard Builder
   Widget _buildDashboard() {
     final stats = _calculateStats();
     
     return Container(
       margin: const EdgeInsets.all(16),
-      // Removed padding here to allow InkWell to hit edges, applied internal padding instead
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -160,9 +201,9 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                 _isDashboardExpanded = !_isDashboardExpanded;
               });
             },
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16), bottom: Radius.circular(16)), // Smooth touch area
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16), bottom: Radius.circular(16)),
             child: Padding(
-              padding: const EdgeInsets.all(16.0), // Padding moved inside
+              padding: const EdgeInsets.all(16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -181,7 +222,6 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                       ),
                     ],
                   ),
-                  // Arrow Icon changes based on state
                   Icon(
                     _isDashboardExpanded 
                         ? Icons.keyboard_arrow_up 
@@ -195,7 +235,6 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
           ),
           
           // --- EXPANDABLE CONTENT ---
-          // Using AnimatedSize for a smooth transition effect
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -231,7 +270,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                     ],
                   ),
                 )
-              : const SizedBox.shrink(), // Hides content when collapsed
+              : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -240,18 +279,31 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Apply search filter locally
+    final filteredGoals = _goals.where((goal) {
+      if (_searchController.text.isEmpty) return true;
+      return (goal['title'] as String).toLowerCase().contains(_searchController.text.toLowerCase());
+    }).toList();
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const AppLogo(),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.calendar_month)),
-        ],
+      
+      // 1. GLOBAL APP BAR
+      appBar: GlobalAppBar(
+        isSearching: _isSearching,
+        searchController: _searchController,
+        onSearchChanged: (val) => setState(() {}),
+        onCloseSearch: () => setState(() {
+          _isSearching = false;
+          _searchController.clear();
+        }),
+        onSearchTap: () => setState(() => _isSearching = true),
+        onFilterTap: _showFilterSheet,
+        onSortTap: _showSortSheet,
       ),
+
       drawer: const MainDrawer(currentRoute: '/goals'),
+      
       body: Column(
         children: [
           _buildDashboard(),
@@ -265,71 +317,75 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
             ),
 
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
-              itemCount: _goals.length,
-              itemBuilder: (context, index) {
-                final goal = _goals[index];
-                final Color goalColor = (goal['color'] as Color?) ?? Colors.grey;
-                final IconData goalIcon = (goal['icon'] as IconData?) ?? Icons.error;
-                final double goalProgress = (goal['progress'] as double?) ?? 0.0;
-                final String goalTitle = (goal['title'] as String?) ?? "Untitled";
-                final String goalSubtitle = (goal['subtitle'] as String?) ?? "";
+            child: filteredGoals.isEmpty
+              ? Center(
+                  child: Text("No goals found matching '${_searchController.text}'", style: TextStyle(color: Colors.grey[500])),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
+                  itemCount: filteredGoals.length,
+                  itemBuilder: (context, index) {
+                    final goal = filteredGoals[index];
+                    final Color goalColor = (goal['color'] as Color?) ?? Colors.grey;
+                    final IconData goalIcon = (goal['icon'] as IconData?) ?? Icons.error;
+                    final double goalProgress = (goal['progress'] as double?) ?? 0.0;
+                    final String goalTitle = (goal['title'] as String?) ?? "Untitled";
+                    final String goalSubtitle = (goal['subtitle'] as String?) ?? "";
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha:0.4),
-                        spreadRadius: 1,
-                        blurRadius: 6,
-                        offset: const Offset(0, 3), 
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withValues(alpha:0.4),
+                            spreadRadius: 1,
+                            blurRadius: 6,
+                            offset: const Offset(0, 3), 
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: GestureDetector(
-                      onTap: () => _updateProgress(index),
-                      child: CircleAvatar(
-                        backgroundColor: goalColor.withValues(alpha:0.15),
-                        child: Icon(goalIcon, color: goalColor),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: GestureDetector(
+                          onTap: () => _updateProgress(index, filteredGoals),
+                          child: CircleAvatar(
+                            backgroundColor: goalColor.withValues(alpha:0.15),
+                            child: Icon(goalIcon, color: goalColor),
+                          ),
+                        ),
+                        title: Text(
+                          goalTitle, 
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(
+                              goalSubtitle, 
+                              style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                            ),
+                            const SizedBox(height: 8),
+                            LinearProgressIndicator(
+                              value: goalProgress,
+                              backgroundColor: Colors.white,
+                              color: goalColor,
+                              minHeight: 6,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ],
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.add_circle_outline),
+                          color: Colors.grey[600],
+                          onPressed: () => _updateProgress(index, filteredGoals),
+                        ),
                       ),
-                    ),
-                    title: Text(
-                      goalTitle, 
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Text(
-                          goalSubtitle, 
-                          style: TextStyle(color: Colors.grey[700], fontSize: 12),
-                        ),
-                        const SizedBox(height: 8),
-                        LinearProgressIndicator(
-                          value: goalProgress,
-                          backgroundColor: Colors.white,
-                          color: goalColor,
-                          minHeight: 6,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ],
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      color: Colors.grey[600],
-                      onPressed: () => _updateProgress(index),
-                    ),
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
           ),
         ],
       ),

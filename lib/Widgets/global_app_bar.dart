@@ -19,7 +19,7 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onSearchChanged,
     this.onSearchTap,
     this.onFilterTap,
-    this.onSortTap, required List<IconButton> actions,
+    this.onSortTap,
   });
 
   @override

@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names, unused_field
+
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
@@ -157,7 +159,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: GlobalAppBar(
+appBar: GlobalAppBar(
         isSearching: _isSearching,
         searchController: _searchController,
         onSearchChanged: (val) => setState(() {}),
@@ -165,13 +167,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
           _isSearching = false;
           _searchController.clear();
         }),
+        // Replaced the old 'actions' list with our 3 new callbacks
         onSearchTap: () => setState(() => _isSearching = true),
         onFilterTap: () {
-          // Future: Open filter options
+          // TODO: Add filter logic for schedule later
         },
         onSortTap: () {
-          // Future: Open sort options
-        }, actions: [],
+          // TODO: Add sort logic for schedule later
+        },
       ),
       drawer: const MainDrawer(currentRoute: '/schedule'),
       body: Column(

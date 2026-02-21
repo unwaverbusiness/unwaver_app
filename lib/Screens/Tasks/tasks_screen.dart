@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:unwaver/widgets/main_drawer.dart'; 
-import 'package:unwaver/widgets/app_logo.dart';
+import 'package:unwaver/widgets/global_app_bar.dart'; // Make sure this path is correct
 import 'task_creation_screen.dart';
 import 'task_instruction_banner.dart';
 
@@ -12,12 +12,14 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
-  // --- STATE VARIABLES ---
+  // --- TOP BAR STATE ---
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  // --- SCREEN STATE ---
   bool _showBanner = true;
-  bool _isDashboardExpanded = true; // Dashboard state
-  bool _isSearchExpanded = false;   // Search Bar state
+  bool _isDashboardExpanded = true; 
   
-  String _searchQuery = "";
   String _filterStatus = "All"; // "All", "Active", "Done"
 
   // Enhanced Data
@@ -52,11 +54,17 @@ class _TasksScreenState extends State<TasksScreen> {
     },
   ];
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   // --- LOGIC ---
 
-  void _toggleTask(int index) {
+  void _toggleTask(int originalIndex) {
     setState(() {
-      _tasks[index]['isDone'] = !_tasks[index]['isDone'];
+      _tasks[originalIndex]['isDone'] = !_tasks[originalIndex]['isDone'];
     });
   }
 
@@ -70,6 +78,33 @@ class _TasksScreenState extends State<TasksScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const TaskCreationScreen()),
+    );
+  }
+
+  // --- TOP BAR ACTION SHEETS ---
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        height: 300,
+        child: const Center(child: Text("Advanced Filters (Coming Soon)", style: TextStyle(fontWeight: FontWeight.bold))),
+      ),
+    );
+  }
+
+  void _showSortSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        height: 300,
+        child: const Center(child: Text("Sort Tasks (Coming Soon)", style: TextStyle(fontWeight: FontWeight.bold))),
+      ),
     );
   }
 
@@ -94,7 +129,7 @@ class _TasksScreenState extends State<TasksScreen> {
       final matchesSearch = task['title']
           .toString()
           .toLowerCase()
-          .contains(_searchQuery.toLowerCase());
+          .contains(_searchController.text.toLowerCase());
       
       bool matchesStatus = true;
       if (_filterStatus == "Active") matchesStatus = !task['isDone'];
@@ -232,45 +267,7 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  // 2. SEARCH BAR WIDGET (Expandable)
-  Widget _buildExpandableSearchBar() {
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      child: _isSearchExpanded
-          ? Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: TextField(
-                autofocus: true, // Focus automatically when opened
-                onChanged: (value) => setState(() => _searchQuery = value),
-                decoration: InputDecoration(
-                  hintText: "Search tasks...",
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  // Close button inside search bar
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = "";
-                        _isSearchExpanded = false;
-                      });
-                    },
-                  ),
-                ),
-              ),
-            )
-          : const SizedBox.shrink(),
-    );
-  }
-
-  // 3. FILTER CHIPS
+  // 2. FILTER CHIPS
   Widget _buildFilterChips() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -311,27 +308,21 @@ class _TasksScreenState extends State<TasksScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const AppLogo(),
-        centerTitle: true,
-        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
-        actions: [
-          // UPDATED: Search Icon toggles visibility
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _isSearchExpanded = !_isSearchExpanded;
-                if (!_isSearchExpanded) _searchQuery = ""; // Clear on close? Optional.
-              });
-            }, 
-            icon: Icon(
-              _isSearchExpanded ? Icons.search_off : Icons.search,
-            ),
-          ),
-        ],
+      
+      // 1. GLOBAL APP BAR
+      appBar: GlobalAppBar(
+        isSearching: _isSearching,
+        searchController: _searchController,
+        onSearchChanged: (val) => setState(() {}),
+        onCloseSearch: () => setState(() {
+          _isSearching = false;
+          _searchController.clear();
+        }),
+        onSearchTap: () => setState(() => _isSearching = true),
+        onFilterTap: _showFilterSheet,
+        onSortTap: _showSortSheet,
       ),
+
       drawer: const MainDrawer(currentRoute: '/tasks'),
       
       floatingActionButton: FloatingActionButton(
@@ -344,9 +335,6 @@ class _TasksScreenState extends State<TasksScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Expandable Search Bar
-          _buildExpandableSearchBar(),
-
           // 2. Expandable Dashboard
           _buildDashboard(),
 
@@ -356,7 +344,7 @@ class _TasksScreenState extends State<TasksScreen> {
               onDismiss: () => setState(() => _showBanner = false),
             ),
 
-          // 4. Filters
+          // 4. Quick Filters
           const SizedBox(height: 8),
           _buildFilterChips(),
           const SizedBox(height: 8),
@@ -371,7 +359,7 @@ class _TasksScreenState extends State<TasksScreen> {
                         Icon(Icons.assignment_turned_in_outlined, size: 48, color: Colors.grey[300]),
                         const SizedBox(height: 16),
                         Text(
-                          _searchQuery.isNotEmpty ? "No matching tasks" : "No tasks found",
+                          _searchController.text.isNotEmpty ? "No matching tasks" : "No tasks found",
                           style: TextStyle(color: Colors.grey[500], fontSize: 16),
                         ),
                       ],

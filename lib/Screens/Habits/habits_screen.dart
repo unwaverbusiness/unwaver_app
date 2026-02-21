@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:unwaver/widgets/main_drawer.dart';
-import 'package:unwaver/widgets/app_logo.dart';
+import 'package:unwaver/widgets/global_app_bar.dart'; // Make sure this path is correct
 import 'habit_creation_screen.dart'; 
 import 'habit_instruction_banner.dart';
 
@@ -12,10 +12,14 @@ class HabitsScreen extends StatefulWidget {
 }
 
 class _HabitsScreenState extends State<HabitsScreen> {
+  // --- TOP BAR STATE ---
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
   // 1. Banner State
   bool _showBanner = true;
   
-  // 2. ADDED: Dashboard Expansion State
+  // 2. Dashboard Expansion State
   bool _isDashboardExpanded = true;
 
   // Dummy data
@@ -27,15 +31,27 @@ class _HabitsScreenState extends State<HabitsScreen> {
     {"title": "Cold Shower", "isCompleted": true, "streak": 8},
   ];
 
-  void _toggleHabit(int index) {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _toggleHabit(int index, List<Map<String, dynamic>> activeList) {
     setState(() {
-      _habits[index]['isCompleted'] = !_habits[index]['isCompleted'];
+      // Find the actual habit in the master list to update it
+      final habitTitle = activeList[index]['title'];
+      final masterIndex = _habits.indexWhere((h) => h['title'] == habitTitle);
       
-      // Simple logic to increment streak visually when checked
-      if (_habits[index]['isCompleted']) {
-        _habits[index]['streak'] += 1;
-      } else {
-        _habits[index]['streak'] -= 1;
+      if (masterIndex != -1) {
+        _habits[masterIndex]['isCompleted'] = !_habits[masterIndex]['isCompleted'];
+        
+        // Simple logic to increment streak visually when checked
+        if (_habits[masterIndex]['isCompleted']) {
+          _habits[masterIndex]['streak'] += 1;
+        } else {
+          _habits[masterIndex]['streak'] -= 1;
+        }
       }
     });
   }
@@ -44,6 +60,33 @@ class _HabitsScreenState extends State<HabitsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const HabitCreationScreen()),
+    );
+  }
+
+  // --- TOP BAR ACTION SHEETS ---
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        height: 300,
+        child: const Center(child: Text("Filter Habits (Coming Soon)", style: TextStyle(fontWeight: FontWeight.bold))),
+      ),
+    );
+  }
+
+  void _showSortSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        height: 300,
+        child: const Center(child: Text("Sort Habits (Coming Soon)", style: TextStyle(fontWeight: FontWeight.bold))),
+      ),
     );
   }
 
@@ -112,17 +155,14 @@ class _HabitsScreenState extends State<HabitsScreen> {
     );
   }
 
-  // 3. UPDATED: Infographic Builder
   Widget _buildInfographic() {
     final stats = _calculateStats();
 
     return Container(
       margin: const EdgeInsets.all(16),
-      // Padding moved inside to allow InkWell edge-to-edge
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        // Pop-out shadow effect
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha:0.05),
@@ -162,7 +202,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
                       ),
                     ],
                   ),
-                  // Arrow Icon Logic
                   Icon(
                     _isDashboardExpanded 
                         ? Icons.keyboard_arrow_up 
@@ -209,18 +248,27 @@ class _HabitsScreenState extends State<HabitsScreen> {
   // --- MAIN BUILD ---
   @override
   Widget build(BuildContext context) {
+    // Apply search filter locally
+    final filteredHabits = _habits.where((habit) {
+      if (_searchController.text.isEmpty) return true;
+      return habit['title'].toString().toLowerCase().contains(_searchController.text.toLowerCase());
+    }).toList();
+
     return Scaffold(
       backgroundColor: Colors.white,
       
-      // 1. HEADER (APP BAR)
-      appBar: AppBar(
-        title: const AppLogo(),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.calendar_month)),
-        ],
+      // 1. GLOBAL APP BAR
+      appBar: GlobalAppBar(
+        isSearching: _isSearching,
+        searchController: _searchController,
+        onSearchChanged: (val) => setState(() {}),
+        onCloseSearch: () => setState(() {
+          _isSearching = false;
+          _searchController.clear();
+        }),
+        onSearchTap: () => setState(() => _isSearching = true),
+        onFilterTap: _showFilterSheet,
+        onSortTap: _showSortSheet,
       ),
       
       drawer: const MainDrawer(currentRoute: '/habits'),
@@ -245,75 +293,79 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
           // 4. HABIT LIST
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
-              itemCount: _habits.length,
-              itemBuilder: (context, index) {
-                final habit = _habits[index];
-                final bool isCompleted = habit['isCompleted'];
+            child: filteredHabits.isEmpty
+              ? Center(
+                  child: Text("No habits found matching '${_searchController.text}'", style: TextStyle(color: Colors.grey[500])),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
+                  itemCount: filteredHabits.length,
+                  itemBuilder: (context, index) {
+                    final habit = filteredHabits[index];
+                    final bool isCompleted = habit['isCompleted'];
 
-                return Card(
-                  elevation: 0,
-                  color: isCompleted
-                      ? Colors.green.withValues(alpha:0.1)
-                      : Colors.grey[100], 
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: isCompleted ? Colors.green.withValues(alpha:0.5) : Colors.transparent,
-                      width: 1,
-                    ),
-                  ),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isCompleted ? Colors.green : Colors.grey.shade300
+                    return Card(
+                      elevation: 0,
+                      color: isCompleted
+                          ? Colors.green.withValues(alpha:0.1)
+                          : Colors.grey[100], 
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: isCompleted ? Colors.green.withValues(alpha:0.5) : Colors.transparent,
+                          width: 1,
                         ),
                       ),
-                      child: Icon(
-                        isCompleted ? Icons.check : Icons.local_fire_department,
-                        color: isCompleted ? Colors.green : Colors.orange,
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(
-                      habit['title'],
-                      style: TextStyle(
-                        decoration: isCompleted ? TextDecoration.lineThrough : null,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                        color: isCompleted ? Colors.grey[600] : Colors.black87,
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6.0),
-                      child: Text(
-                        "${habit['streak']} Day Streak",
-                        style: TextStyle(
-                          color: isCompleted ? Colors.green[700] : Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isCompleted ? Colors.green : Colors.grey.shade300
+                            ),
+                          ),
+                          child: Icon(
+                            isCompleted ? Icons.check : Icons.local_fire_department,
+                            color: isCompleted ? Colors.green : Colors.orange,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          habit['title'],
+                          style: TextStyle(
+                            decoration: isCompleted ? TextDecoration.lineThrough : null,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: isCompleted ? Colors.grey[600] : Colors.black87,
+                          ),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 6.0),
+                          child: Text(
+                            "${habit['streak']} Day Streak",
+                            style: TextStyle(
+                              color: isCompleted ? Colors.green[700] : Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12
+                            ),
+                          ),
+                        ),
+                        trailing: IconButton(
+                          onPressed: () => _toggleHabit(index, filteredHabits),
+                          icon: Icon(
+                            isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                            color: isCompleted ? Colors.green : Colors.grey[400],
+                            size: 32,
+                          ),
                         ),
                       ),
-                    ),
-                    trailing: IconButton(
-                      onPressed: () => _toggleHabit(index),
-                      icon: Icon(
-                        isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                        color: isCompleted ? Colors.green : Colors.grey[400],
-                        size: 32,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
           ),
         ],
       ),
