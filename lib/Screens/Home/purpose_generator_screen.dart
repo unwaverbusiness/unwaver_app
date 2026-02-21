@@ -47,8 +47,8 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
   List<String> _vices = [];
   List<String> _gratitudes = [];
   List<String> _innerCircle = [];
-  List<String> _aspirations = [];
-  List<String> _characteristics = [];
+  final List<String> _aspirations = [];
+  final List<String> _characteristics = [];
 
   // Card visibility preferences
   Map<String, bool> _cardVisibility = {
@@ -671,6 +671,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
                         const SizedBox(height: 16),
                       ],
                     );
+                  // ignore: unnecessary_to_list_in_spreads
                   }).toList(),
 
                   const SizedBox(height: 100), 

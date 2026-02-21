@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:unwaver/widgets/main_drawer.dart'; 
 import 'package:unwaver/widgets/global_app_bar.dart'; // Make sure this path is correct
 import 'task_creation_screen.dart';
-import 'task_instruction_banner.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -17,7 +16,6 @@ class _TasksScreenState extends State<TasksScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   // --- SCREEN STATE ---
-  bool _showBanner = true;
   bool _isDashboardExpanded = true; 
   
   String _filterStatus = "All"; // "All", "Active", "Done"
@@ -338,13 +336,7 @@ class _TasksScreenState extends State<TasksScreen> {
           // 2. Expandable Dashboard
           _buildDashboard(),
 
-          // 3. Instruction Banner
-          if (_showBanner)
-            TaskInstructionBanner(
-              onDismiss: () => setState(() => _showBanner = false),
-            ),
-
-          // 4. Quick Filters
+          // 3. Quick Filters
           const SizedBox(height: 8),
           _buildFilterChips(),
           const SizedBox(height: 8),

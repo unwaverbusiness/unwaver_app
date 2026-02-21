@@ -13,12 +13,13 @@ class MainDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: const Color(0xFFF8F9FA), // Slightly off-white for contrast against white tiles
+      width: 260,
       child: Column(
         children: [
           // --- HEADER ---
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+            padding: const EdgeInsets.fromLTRB(18, 60, 18, 18),
             decoration: const BoxDecoration(
               color: Colors.black,
             ),
@@ -27,9 +28,9 @@ class MainDrawer extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Container(
-                  height: 56,
-                  width: 56,
-                  margin: const EdgeInsets.only(bottom: 16),
+                  height: 80,
+                  width: 80,
+                  margin: const EdgeInsets.only(bottom: 4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
