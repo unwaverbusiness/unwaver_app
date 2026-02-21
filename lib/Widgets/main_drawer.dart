@@ -1,9 +1,8 @@
 // ignore_for_file: file_names
 
 import 'package:flutter/material.dart';
-// 1. IMPORT THE SCREENS
-import 'package:unwaver/Screens/Stats/statistics.dart'; 
-import 'package:unwaver/Screens/settings/settings_screen.dart'; // Add this import
+// Make sure this import matches your actual file structure
+import 'package:unwaver/Screens/settings/settings_screen.dart'; 
 
 class MainDrawer extends StatelessWidget {
   final String currentRoute;
@@ -13,128 +12,216 @@ class MainDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      child: Column( // Changed ListView to Column to use Spacer()
+      backgroundColor: const Color(0xFFF8F9FA), // Slightly off-white for contrast against white tiles
+      child: Column(
         children: [
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
+          // --- HEADER ---
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+            decoration: const BoxDecoration(
+              color: Colors.black,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // --- HEADER ---
-                const DrawerHeader(
-                  decoration: BoxDecoration(color: Colors.black),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        "Unwaver",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        "Declare your purpose.",
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
-                      ),
-                      SizedBox(height: 10),
+                Container(
+                  height: 56,
+                  width: 56,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
                     ],
+                    image: const DecorationImage(
+                      image: AssetImage('assets/Unwaver_App_Icon.png'),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
-
-                // --- NAVIGATION TABS ---
-                _buildDrawerItem(context, 
-                  icon: Icons.psychology, 
-                  text: 'Coach', 
-                  route: '/coach'
+                const Text(
+                  "Unwaver",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-                _buildDrawerItem(context, 
-                  icon: Icons.flag, 
-                  text: 'Goals', 
-                  route: '/goals'
-                ),
-                _buildDrawerItem(context, 
-                  icon: Icons.repeat, 
-                  text: 'Habits', 
-                  route: '/habits'
-                ),
-                _buildDrawerItem(context, 
-                  icon: Icons.check_circle_outline, 
-                  text: 'Tasks', 
-                  route: '/tasks'
-                ),
-                _buildDrawerItem(context, 
-                  icon: Icons.calendar_month, 
-                  text: 'Calendar', 
-                  route: '/calendar'
-                ),
-
-                // STATISTICS ITEM
-                _buildDrawerItem(context, 
-                  icon: Icons.bar_chart, 
-                  text: 'Statistics', 
-                  route: '/statistics', 
-                  onTapOverride: () {
-                    Navigator.pop(context); 
-                    Navigator.pushReplacement(
-                      context, 
-                      MaterialPageRoute(builder: (context) => const StatisticsScreen())
-                    );
-                  }
+                const SizedBox(height: 4),
+                const Text(
+                  "Declare your purpose.",
+                  style: TextStyle(
+                    color: Color(0xFFBB8E13), // Unwaver Gold
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
           ),
 
-          // --- DIVIDER & SETTINGS (At Bottom) ---
-          const Divider(),
-          _buildDrawerItem(context,
-            icon: Icons.settings,
-            text: 'Settings',
-            route: '/settings',
-            onTapOverride: () {
-              Navigator.pop(context); // Close drawer
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
+          // --- MENU ITEMS ---
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              children: [
+                _buildSectionHeader("Intelligence & Insights"),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.psychology,
+                  text: 'AI Coach',
+                  route: '/coach',
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.insights_rounded,
+                  text: 'Statistics',
+                  route: '/statistics',
+                ),
+
+                const SizedBox(height: 16),
+                _buildSectionHeader("Organization"),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.label_outline_rounded,
+                  text: 'Tags',
+                  route: '/tags',
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.fact_check_outlined,
+                  text: 'Completion Log',
+                  route: '/completion_log',
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.notifications_none_rounded,
+                  text: 'Reminders',
+                  route: '/reminders',
+                ),
+
+                const SizedBox(height: 16),
+                _buildSectionHeader("Social & Collaboration"),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.handshake_outlined,
+                  text: 'Accountability Partners',
+                  route: '/accountability',
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.workspaces_outline,
+                  text: 'Teams',
+                  route: '/teams',
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16), // Padding at bottom
+
+          // --- BOTTOM SETTINGS ---
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: _buildDrawerItem(
+                context,
+                icon: Icons.settings_outlined,
+                text: 'Settings',
+                route: '/settings',
+                // --- OVERRIDE FOR ACTUAL NAVIGATION ---
+                onTapOverride: () {
+                  Navigator.pop(context); // Close the drawer
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  );
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // Helper function 
-  Widget _buildDrawerItem(BuildContext context, {
-    required IconData icon, 
-    required String text, 
+  // --- HELPER WIDGETS ---
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, bottom: 8, top: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          color: Colors.grey.shade500,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem(
+    BuildContext context, {
+    required IconData icon,
+    required String text,
     required String route,
-    VoidCallback? onTapOverride, 
+    VoidCallback? onTapOverride,
   }) {
     final bool isSelected = currentRoute == route;
 
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? Colors.black : Colors.grey[700]),
-      title: Text(
-        text,
-        style: TextStyle(
-          color: isSelected ? Colors.black : Colors.grey[800],
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        leading: Icon(
+          icon, 
+          color: isSelected ? Colors.black : Colors.grey.shade700,
+          size: 24,
         ),
-      ),
-      selected: isSelected,
-      selectedTileColor: Colors.grey[200], 
-      onTap: onTapOverride ?? () {
-        if (isSelected) {
+        title: Text(
+          text,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.grey.shade800,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+        selected: isSelected,
+        selectedTileColor: Colors.white, 
+        // Subtle hover/tap background for non-selected items
+        tileColor: isSelected ? Colors.white : Colors.transparent,
+        onTap: onTapOverride ?? () {
+          // Close the drawer immediately
           Navigator.pop(context);
-        } else {
-          Navigator.pop(context); 
-          Navigator.pushReplacementNamed(context, route);
-        }
-      },
+
+          // If it's already the active screen, do nothing
+          if (isSelected) return;
+
+          // Placeholder logic: Show snackbar instead of navigating
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$text coming soon!'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.black87,
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        },
+      ),
     );
   }
 }

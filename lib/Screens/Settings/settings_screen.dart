@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-// REMOVED: import 'package:unwaver/widgets/app_logo.dart';
+import 'package:flutter/services.dart';
+import 'package:local_auth/local_auth.dart'; // Added for Biometrics
+import 'package:unwaver/Screens/notifications/notifications_screen.dart'; 
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -10,15 +12,76 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   // --- MOCK STATE VARIABLES ---
-  bool _notificationsEnabled = true;
   bool _emailUpdates = false;
   bool _darkMode = false;
-  bool _biometricLogin = true;
+  
+  // Biometric State
+  bool _biometricLogin = false; // Start false to force authentication to turn it on
+  final LocalAuthentication _localAuth = LocalAuthentication();
+
+  // --- LOGIC ---
+  Future<void> _handleBiometricToggle(bool enable) async {
+    if (enable) {
+      try {
+        // 1. Check if the device hardware supports biometrics
+        final bool canAuthenticateWithBiometrics = await _localAuth.canCheckBiometrics;
+        final bool canAuthenticate = canAuthenticateWithBiometrics || await _localAuth.isDeviceSupported();
+
+        if (!canAuthenticate) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Biometrics are not supported or set up on this device."),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // 2. Trigger the OS-level Face ID / Fingerprint prompt
+        final bool didAuthenticate = await _localAuth.authenticate(
+          localizedReason: 'Authenticate to enable biometric login for Unwaver',
+          options: const AuthenticationOptions(
+            biometricOnly: true, // Prevents falling back to device PIN
+            stickyAuth: true,    // Keeps prompt alive if app goes briefly to background
+          ),
+        );
+
+        // 3. If successful, update the UI switch
+        if (didAuthenticate && mounted) {
+          setState(() {
+            _biometricLogin = true;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Biometric login enabled successfully."),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // TODO: Save this preference to SharedPreferences later
+        }
+      } on PlatformException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${e.message}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
+      // Disabling doesn't require authentication, just turn it off
+      setState(() {
+        _biometricLogin = false;
+      });
+      // TODO: Remove preference from SharedPreferences later
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50, // Slight off-white for contrast
+      backgroundColor: Colors.grey.shade50, 
       appBar: AppBar(
         title: const Text("Settings", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
@@ -48,11 +111,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: "Change Password",
               onTap: () {},
             ),
+            // Updated to use the new Biometric logic
             _buildSwitchTile(
               icon: Icons.fingerprint,
               title: "Biometric Login",
               value: _biometricLogin,
-              onChanged: (val) => setState(() => _biometricLogin = val),
+              onChanged: _handleBiometricToggle,
             ),
           ]),
 
@@ -61,12 +125,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // --- SECTION: PREFERENCES ---
           _buildSectionHeader("Preferences"),
           _buildSettingsGroup([
-            _buildSwitchTile(
+            _buildTile(
               icon: Icons.notifications_none,
               title: "Push Notifications",
-              subtitle: "Reminders for habits & goals",
-              value: _notificationsEnabled,
-              onChanged: (val) => setState(() => _notificationsEnabled = val),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                );
+              },
             ),
             _buildSwitchTile(
               icon: Icons.email_outlined,
@@ -170,7 +237,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "John Doe", // Replace with user data
+                "John Doe", 
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               Text(
@@ -251,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-Widget _buildSwitchTile({
+  Widget _buildSwitchTile({
     required IconData icon,
     required String title,
     String? subtitle,
@@ -273,7 +340,6 @@ Widget _buildSwitchTile({
           : null,
       value: value,
       onChanged: onChanged,
-      // FIX: Replace activeColor with activeTrackColor
       activeTrackColor: Colors.black, 
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -292,7 +358,6 @@ Widget _buildSwitchTile({
           ),
           TextButton(
             onPressed: () {
-              // Perform delete logic here
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text("History cleared.")),

@@ -66,16 +66,16 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? null // Hides icons to give the search bar full width
           : [
               IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: onSearchTap,
+                icon: const Icon(Icons.sort_by_alpha),
+                onPressed: onSortTap,
               ),
               IconButton(
                 icon: const Icon(Icons.filter_list),
                 onPressed: onFilterTap,
               ),
               IconButton(
-                icon: const Icon(Icons.sort_by_alpha),
-                onPressed: onSortTap,
+                icon: const Icon(Icons.search),
+                onPressed: onSearchTap,
               ),
               const SizedBox(width: 8), // A little breathing room on the edge
             ],
