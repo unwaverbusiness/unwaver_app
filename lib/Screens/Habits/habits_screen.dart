@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:unwaver/widgets/main_drawer.dart';
 import 'package:unwaver/widgets/global_app_bar.dart'; // Make sure this path is correct
 import 'habit_creation_screen.dart'; 
-import 'habit_instruction_banner.dart';
 
 class HabitsScreen extends StatefulWidget {
   const HabitsScreen({super.key});
@@ -15,20 +14,20 @@ class _HabitsScreenState extends State<HabitsScreen> {
   // --- TOP BAR STATE ---
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
-
-  // 1. Banner State
-  bool _showBanner = true;
   
   // 2. Dashboard Expansion State
   bool _isDashboardExpanded = true;
 
+  String _selectedHabitType = 'Habits to Build';
+
   // Dummy data
   final List<Map<String, dynamic>> _habits = [
-    {"title": "Morning Meditation", "isCompleted": false, "streak": 12},
-    {"title": "Drink 2L Water", "isCompleted": true, "streak": 5},
-    {"title": "No Sugar", "isCompleted": false, "streak": 3},
-    {"title": "Read 10 Pages", "isCompleted": false, "streak": 20},
-    {"title": "Cold Shower", "isCompleted": true, "streak": 8},
+    {"title": "Morning Meditation", "isCompleted": false, "streak": 12, "type": "Habits to Build"},
+    {"title": "Drink 2L Water", "isCompleted": true, "streak": 5, "type": "Habits to Build"},
+    {"title": "No Sugar", "isCompleted": false, "streak": 3, "type": "Habits to Break"},
+    {"title": "Read 10 Pages", "isCompleted": false, "streak": 20, "type": "Habits to Build"},
+    {"title": "Cold Shower", "isCompleted": true, "streak": 8, "type": "Habits to Build"},
+    {"title": "Stop Biting Nails", "isCompleted": false, "streak": 1, "type": "Habits to Break"},
   ];
 
   @override
@@ -92,16 +91,17 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
   // --- INFOGRAPHIC LOGIC ---
   Map<String, String> _calculateStats() {
-    final totalHabits = _habits.length;
-    final completedToday = _habits.where((h) => h['isCompleted'] == true).length;
+    final currentTypeHabits = _habits.where((h) => h['type'] == _selectedHabitType).toList();
+    final totalHabits = currentTypeHabits.length;
+    final completedToday = currentTypeHabits.where((h) => h['isCompleted'] == true).length;
     
     // 1. Best Streak: The highest streak in the list
     int bestStreak = 0;
     // 2. Total Days: Sum of all streaks (Gamification metric)
     int totalStreakDays = 0;
 
-    if (_habits.isNotEmpty) {
-      for (var h in _habits) {
+    if (currentTypeHabits.isNotEmpty) {
+      for (var h in currentTypeHabits) {
         int s = h['streak'] as int;
         if (s > bestStreak) bestStreak = s;
         totalStreakDays += s;
@@ -245,11 +245,53 @@ class _HabitsScreenState extends State<HabitsScreen> {
     );
   }
 
+  Widget _buildTypeToggle() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: ['Habits to Build', 'Habits to Break'].map((type) {
+            final isSelected = _selectedHabitType == type;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedHabitType = type),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: isSelected ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))] : [],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    type,
+                    style: TextStyle(
+                      color: isSelected ? Colors.black : Colors.grey[500],
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   // --- MAIN BUILD ---
   @override
   Widget build(BuildContext context) {
     // Apply search filter locally
     final filteredHabits = _habits.where((habit) {
+      if (habit['type'] != _selectedHabitType) return false;
       if (_searchController.text.isEmpty) return true;
       return habit['title'].toString().toLowerCase().contains(_searchController.text.toLowerCase());
     }).toList();
@@ -275,21 +317,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
       body: Column(
         children: [
+          _buildTypeToggle(),
           // 2. INFOGRAPHIC (SUMMARY)
           _buildInfographic(),
-
-          // 3. INSTRUCTION BANNER
-          if (_showBanner)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: HabitInstructionBanner(
-                onDismiss: () {
-                  setState(() {
-                    _showBanner = false;
-                  });
-                },
-              ),
-            ),
 
           // 4. HABIT LIST
           Expanded(

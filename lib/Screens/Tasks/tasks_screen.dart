@@ -19,6 +19,7 @@ class _TasksScreenState extends State<TasksScreen> {
   bool _isDashboardExpanded = true; 
   
   String _filterStatus = "All"; // "All", "Active", "Done"
+  String _selectedTaskType = '1x Tasks';
 
   // Enhanced Data
   final List<Map<String, dynamic>> _tasks = [
@@ -28,6 +29,7 @@ class _TasksScreenState extends State<TasksScreen> {
       'priority': 1, // 1=High
       'category': 'Finance',
       'dueDate': DateTime.now().add(const Duration(days: 1)),
+      'type': '1x Tasks',
     },
     {
       'title': 'Call Mom',
@@ -35,6 +37,7 @@ class _TasksScreenState extends State<TasksScreen> {
       'priority': 2, // 2=Med
       'category': 'Family',
       'dueDate': DateTime.now(),
+      'type': '1x Tasks',
     },
     {
       'title': 'Finish Flutter Module',
@@ -42,6 +45,7 @@ class _TasksScreenState extends State<TasksScreen> {
       'priority': 1, // 1=High
       'category': 'Work',
       'dueDate': DateTime.now().subtract(const Duration(days: 1)),
+      'type': '1x Tasks',
     },
     {
       'title': 'Grocery Shopping',
@@ -49,6 +53,7 @@ class _TasksScreenState extends State<TasksScreen> {
       'priority': 3, // 3=Low
       'category': 'Personal',
       'dueDate': DateTime.now().add(const Duration(days: 2)),
+      'type': 'Recurring Tasks',
     },
   ];
 
@@ -108,10 +113,11 @@ class _TasksScreenState extends State<TasksScreen> {
 
   // --- STATS LOGIC ---
   Map<String, String> _calculateStats() {
-    final total = _tasks.length;
-    final done = _tasks.where((t) => t['isDone'] == true).length;
+    final currentTypeTasks = _tasks.where((t) => t['type'] == _selectedTaskType).toList();
+    final total = currentTypeTasks.length;
+    final done = currentTypeTasks.where((t) => t['isDone'] == true).length;
     final pending = total - done;
-    final highPriority = _tasks.where((t) => t['priority'] == 1 && t['isDone'] == false).length;
+    final highPriority = currentTypeTasks.where((t) => t['priority'] == 1 && t['isDone'] == false).length;
     final percent = total == 0 ? 0 : ((done / total) * 100).toInt();
 
     return {
@@ -124,6 +130,8 @@ class _TasksScreenState extends State<TasksScreen> {
 
   List<Map<String, dynamic>> _getFilteredTasks() {
     return _tasks.where((task) {
+      if (task['type'] != _selectedTaskType) return false;
+      
       final matchesSearch = task['title']
           .toString()
           .toLowerCase()
@@ -300,6 +308,47 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
+  Widget _buildTypeToggle() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: ['1x Tasks', 'Recurring Tasks'].map((type) {
+            final isSelected = _selectedTaskType == type;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedTaskType = type),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: isSelected ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))] : [],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    type,
+                    style: TextStyle(
+                      color: isSelected ? Colors.black : Colors.grey[500],
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredList = _getFilteredTasks();
@@ -333,6 +382,7 @@ class _TasksScreenState extends State<TasksScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildTypeToggle(),
           // 2. Expandable Dashboard
           _buildDashboard(),
 

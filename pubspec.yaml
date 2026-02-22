@@ -45,6 +45,9 @@ dependencies:
   # --- For Biometric Authentication ---
   local_auth: ^2.1.0
 
+  # --- For Color Wheel ---
+  flutter_colorpicker: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
