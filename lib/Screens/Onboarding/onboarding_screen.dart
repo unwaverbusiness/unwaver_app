@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart'; 
-// --- UPDATED IMPORT ---
 import 'package:unwaver/screens/accounts/register_screen.dart'; 
+import 'package:unwaver/screens/main_layout.dart'; // Added import for MainLayout
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -78,7 +78,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  // --- UPDATED NAVIGATION LOGIC ---
+  // New method specifically for skipping to MainLayout
+  void _skipOnboarding() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const MainLayout()),
+    );
+  }
+
   Future<void> _finishOnboarding() async {
     setState(() {
       _isLoading = true; 
@@ -89,7 +96,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (mounted) {
       Navigator.pushReplacement(
         context,
-        // Navigate to RegisterScreen instead of MainLayout
         MaterialPageRoute(builder: (context) => const RegisterScreen()),
       );
     }
@@ -111,7 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     children: [
                       if (_currentPage < _onboardingData.length - 1)
                         TextButton(
-                          onPressed: _finishOnboarding,
+                          onPressed: _skipOnboarding, // Assign skip method here
                           child: Text("Skip", style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w600, fontSize: 16)),
                         )
                       else 
@@ -170,8 +176,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))],
                           ),
                           child: _isLoading
-                             ? const SizedBox() 
-                             : Icon(_currentPage == _onboardingData.length - 1 ? Icons.check : Icons.arrow_forward, color: Colors.white, size: 28),
+                              ? const SizedBox() 
+                              : Icon(_currentPage == _onboardingData.length - 1 ? Icons.check : Icons.arrow_forward, color: Colors.white, size: 28),
                         ),
                       ),
                     ],

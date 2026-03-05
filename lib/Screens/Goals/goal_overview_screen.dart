@@ -2,9 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Add to pubspec.yaml
+import 'package:flutter_colorpicker/flutter_colorpicker.dart'; 
 import 'package:unwaver/widgets/main_drawer.dart';
 import 'package:unwaver/widgets/global_app_bar.dart'; 
+import 'package:unwaver/widgets/dashboard_widget.dart'; // Reusable Dashboard
 
 // --- MASSIVE ICON LIBRARY ---
 final List<IconData> _availableIcons = [
@@ -33,8 +34,10 @@ class GoalOverviewScreen extends StatefulWidget {
 class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
-  bool _isDashboardExpanded = true; 
-  String _selectedGoalType = 'Short-Term';
+  final TextEditingController _elementFilterController = TextEditingController();
+  final bool _isDashboardExpanded = true;
+  bool _showDashboardWidget = true;
+  String _selectedGoalType = 'All';
 
   // --- MOCK DATA (Expanded for advanced features) ---
   final List<Map<String, dynamic>> _goals = [
@@ -74,6 +77,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _elementFilterController.dispose();
     super.dispose();
   }
 
@@ -93,6 +97,240 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
 
   void _deleteGoal(String id) {
     setState(() => _goals.removeWhere((g) => g['id'] == id));
+  }
+
+  void _showFilterSheet() {
+    _elementFilterController.clear();
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            
+            // Filter logic
+            final filteredItems = _goals.where((item) {
+              final title = item['title'].toString().toLowerCase();
+              final searchTerm = _elementFilterController.text.toLowerCase();
+              return title.contains(searchTerm);
+            }).toList();
+
+            return Container(
+              padding: const EdgeInsets.all(20),
+              constraints: BoxConstraints(
+                maxWidth: 400,
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.dashboard_customize, color: _goldColor, size: 24),
+                          const SizedBox(width: 12),
+                          const Text("Customize Goals", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () => Navigator.pop(ctx)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text("Drag to reorder • Tap to show/hide", style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                  const SizedBox(height: 16),
+                  
+                  TextField(
+                    controller: _elementFilterController,
+                    style: const TextStyle(color: Colors.black),
+                    decoration: InputDecoration(
+                      hintText: "Search goals...",
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      prefixIcon: Icon(Icons.search, color: _goldColor),
+                      suffixIcon: _elementFilterController.text.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear, color: Colors.grey.shade400),
+                              onPressed: () {
+                                _elementFilterController.clear();
+                                setDialogState(() {});
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (value) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 16),
+                  Divider(color: Colors.grey.shade200),
+                  const SizedBox(height: 8),
+
+                  // Static Dashboard Toggle
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _showDashboardWidget ? _goldColor.withValues(alpha: 0.05) : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _showDashboardWidget ? _goldColor.withValues(alpha: 0.3) : Colors.grey.shade300,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      child: Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Icon(Icons.drag_indicator, size: 20, color: Colors.transparent), // invisible drag handle to align text
+                          ),
+                          Icon(Icons.dashboard, size: 20, color: _showDashboardWidget ? _goldColor : Colors.grey.shade400),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _showDashboardWidget = !_showDashboardWidget;
+                                });
+                                setDialogState(() {});
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Text(
+                                "Dashboard Widget",
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: _showDashboardWidget ? FontWeight.w600 : FontWeight.normal,
+                                  color: _showDashboardWidget ? Colors.black87 : Colors.grey.shade500,
+                                ),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _showDashboardWidget = !_showDashboardWidget;
+                              });
+                              setDialogState(() {});
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              color: Colors.transparent,
+                              child: Icon(
+                                _showDashboardWidget ? Icons.visibility : Icons.visibility_off,
+                                size: 20,
+                                color: _showDashboardWidget ? _goldColor : Colors.grey.shade400,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  Flexible(
+                    child: ReorderableListView.builder(
+                      shrinkWrap: true,
+                      buildDefaultDragHandles: false,
+                      itemCount: filteredItems.length,
+                      onReorder: (oldIndex, newIndex) {
+                        setState(() {
+                          if (newIndex > oldIndex) newIndex--;
+                          final oldActualIndex = _goals.indexOf(filteredItems[oldIndex]);
+                          final item = _goals.removeAt(oldActualIndex);
+                          
+                          final newActualIndex = newIndex == filteredItems.length - 1
+                              ? _goals.length
+                              : _goals.indexOf(filteredItems[newIndex]);
+                          _goals.insert(newActualIndex, item);
+                        });
+                        setDialogState(() {});
+                      },
+                      itemBuilder: (context, index) {
+                        final item = filteredItems[index];
+                        final title = item['title'] as String;
+                        final icon = item['icon'] as IconData? ?? Icons.star;
+                        final isVisible = !(item['isHidden'] == true);
+                        
+                        return Container(
+                          key: ValueKey(item['id'] ?? title),
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isVisible ? _goldColor.withValues(alpha: 0.05) : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isVisible ? _goldColor.withValues(alpha: 0.3) : Colors.grey.shade300,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            child: Row(
+                              children: [
+                                ReorderableDragStartListener(
+                                  index: index,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: Icon(Icons.drag_indicator, size: 20, color: Colors.grey.shade400),
+                                  ),
+                                ),
+                                Icon(icon, size: 20, color: isVisible ? _goldColor : Colors.grey.shade400),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        item['isHidden'] = isVisible;
+                                      });
+                                      setDialogState(() {});
+                                    },
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Text(
+                                      title,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: isVisible ? FontWeight.w600 : FontWeight.normal,
+                                        color: isVisible ? Colors.black87 : Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      item['isHidden'] = isVisible;
+                                    });
+                                    setDialogState(() {});
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    color: Colors.transparent,
+                                    child: Icon(
+                                      isVisible ? Icons.visibility : Icons.visibility_off,
+                                      size: 20,
+                                      color: isVisible ? _goldColor : Colors.grey.shade400,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   // --- NEW: FLOATING ADD GOAL DIALOG ---
@@ -299,7 +537,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(20)),
         child: Row(
-          children: ['Short-Term', 'Long-Term', 'Bucket List'].map((type) {
+          children: ['All', 'Short-Term', 'Long-Term', 'Bucket List'].map((type) {
             final isSelected = _selectedGoalType == type;
             return Expanded(
               child: GestureDetector(
@@ -313,7 +551,7 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                     boxShadow: isSelected ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))] : [],
                   ),
                   alignment: Alignment.center,
-                  child: Text(type, style: TextStyle(color: isSelected ? Colors.black : Colors.grey[500], fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, fontSize: 13)),
+                  child: Text(type, style: TextStyle(color: isSelected ? Colors.black : Colors.grey[500], fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, fontSize: 11)),
                 ),
               ),
             );
@@ -323,86 +561,13 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
     );
   }
 
-  Widget _buildDashboard() {
-    // Basic stats calculation
-    final currentTypeGoals = _goals.where((g) => g['type'] == _selectedGoalType).toList();
-    final total = currentTypeGoals.length;
-    final completed = currentTypeGoals.where((g) => (g['progress'] as double? ?? 0.0) >= 1.0).length;
-    final percent = total == 0 ? 0 : ((completed / total) * 100).toInt();
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.05), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () => setState(() => _isDashboardExpanded = !_isDashboardExpanded),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16), bottom: Radius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.bar_chart, size: 16, color: Colors.grey[600]), const SizedBox(width: 8),
-                      Text("GOALS DASHBOARD", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.grey[800])),
-                    ],
-                  ),
-                  Icon(_isDashboardExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.grey[600], size: 20),
-                ],
-              ),
-            ),
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: _isDashboardExpanded 
-              ? Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Column(
-                    children: [
-                      const Divider(height: 1), const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildStatItem("Total", "$total"),
-                          _buildStatItem("Active", "${total - completed}", color: Colors.orange[700]),
-                          _buildStatItem("Completed", "$completed", color: Colors.green[700]),
-                          _buildStatItem("Success Rate", "$percent%", color: Colors.blue[700]),
-                        ],
-                      ),
-                    ],
-                  ),
-                )
-              : const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, {Color? color}) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color ?? Colors.black87)),
-        const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final filteredGoals = _goals.where((goal) {
-      if (goal['type'] != _selectedGoalType) return false;
-      if (_searchController.text.isEmpty) return true;
-      return (goal['title'] as String).toLowerCase().contains(_searchController.text.toLowerCase());
+      if (goal['isHidden'] == true) return false;
+      if (_selectedGoalType != 'All' && goal['type'] != _selectedGoalType) return false;
+      if (_searchController.text.isNotEmpty && !(goal['title'] as String).toLowerCase().contains(_searchController.text.toLowerCase())) return false;
+      return true;
     }).toList();
 
     return Scaffold(
@@ -412,13 +577,19 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
         onSearchChanged: (val) => setState(() {}),
         onCloseSearch: () => setState(() { _isSearching = false; _searchController.clear(); }),
         onSearchTap: () => setState(() => _isSearching = true),
-        onFilterTap: () {}, onSortTap: () {},
+        onFilterTap: _showFilterSheet, onSortTap: () {},
       ),
       drawer: const MainDrawer(currentRoute: '/goals'),
       body: Column(
         children: [
           _buildTypeToggle(),
-          _buildDashboard(),
+          
+          // --- REUSABLE DASHBOARD WIDGET ---
+          if (_showDashboardWidget)
+            DashboardWidget(
+              goals: _goals,
+              selectedGoalType: _selectedGoalType,
+            ),
 
           Expanded(
             child: filteredGoals.isEmpty

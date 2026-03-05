@@ -14,12 +14,14 @@ class _TasksScreenState extends State<TasksScreen> {
   // --- TOP BAR STATE ---
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _elementFilterController = TextEditingController();
 
   // --- SCREEN STATE ---
-  bool _isDashboardExpanded = true; 
+  bool _isDashboardExpanded = true;
+  bool _showDashboardWidget = true;
   
   String _filterStatus = "All"; // "All", "Active", "Done"
-  String _selectedTaskType = '1x Tasks';
+  String _selectedTaskType = 'All';
 
   // Enhanced Data
   final List<Map<String, dynamic>> _tasks = [
@@ -60,6 +62,7 @@ class _TasksScreenState extends State<TasksScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _elementFilterController.dispose();
     super.dispose();
   }
 
@@ -86,14 +89,234 @@ class _TasksScreenState extends State<TasksScreen> {
 
   // --- TOP BAR ACTION SHEETS ---
   void _showFilterSheet() {
-    showModalBottomSheet(
+    _elementFilterController.clear();
+    
+    showDialog(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        height: 300,
-        child: const Center(child: Text("Advanced Filters (Coming Soon)", style: TextStyle(fontWeight: FontWeight.bold))),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            
+            // Filter logic
+            final filteredItems = _tasks.where((item) {
+              final title = item['title'].toString().toLowerCase();
+              final searchTerm = _elementFilterController.text.toLowerCase();
+              return title.contains(searchTerm);
+            }).toList();
+
+            return Container(
+              padding: const EdgeInsets.all(20),
+              constraints: BoxConstraints(
+                maxWidth: 400,
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.dashboard_customize, color: Colors.blueAccent, size: 24),
+                          const SizedBox(width: 12),
+                          const Text("Customize Tasks", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () => Navigator.pop(ctx)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text("Drag to reorder • Tap to show/hide", style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                  const SizedBox(height: 16),
+                  
+                  TextField(
+                    controller: _elementFilterController,
+                    style: const TextStyle(color: Colors.black),
+                    decoration: InputDecoration(
+                      hintText: "Search tasks...",
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      prefixIcon: Icon(Icons.search, color: Colors.blueAccent),
+                      suffixIcon: _elementFilterController.text.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear, color: Colors.grey.shade400),
+                              onPressed: () {
+                                _elementFilterController.clear();
+                                setDialogState(() {});
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (value) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 16),
+                  Divider(color: Colors.grey.shade200),
+                  const SizedBox(height: 8),
+
+                  // Static Dashboard Toggle
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _showDashboardWidget ? Colors.blueAccent.withValues(alpha: 0.05) : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _showDashboardWidget ? Colors.blueAccent.withValues(alpha: 0.3) : Colors.grey.shade300,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      child: Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Icon(Icons.drag_indicator, size: 20, color: Colors.transparent), // invisible drag handle
+                          ),
+                          Icon(Icons.dashboard, size: 20, color: _showDashboardWidget ? Colors.blueAccent : Colors.grey.shade400),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _showDashboardWidget = !_showDashboardWidget;
+                                });
+                                setDialogState(() {});
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Text(
+                                "Dashboard Widget",
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: _showDashboardWidget ? FontWeight.w600 : FontWeight.normal,
+                                  color: _showDashboardWidget ? Colors.black87 : Colors.grey.shade500,
+                                ),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _showDashboardWidget = !_showDashboardWidget;
+                              });
+                              setDialogState(() {});
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              color: Colors.transparent,
+                              child: Icon(
+                                _showDashboardWidget ? Icons.visibility : Icons.visibility_off,
+                                size: 20,
+                                color: _showDashboardWidget ? Colors.blueAccent : Colors.grey.shade400,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  Flexible(
+                    child: ReorderableListView.builder(
+                      shrinkWrap: true,
+                      buildDefaultDragHandles: false,
+                      itemCount: filteredItems.length,
+                      onReorder: (oldIndex, newIndex) {
+                        setState(() {
+                          if (newIndex > oldIndex) newIndex--;
+                          final oldActualIndex = _tasks.indexOf(filteredItems[oldIndex]);
+                          final item = _tasks.removeAt(oldActualIndex);
+                          
+                          final newActualIndex = newIndex == filteredItems.length - 1
+                              ? _tasks.length
+                              : _tasks.indexOf(filteredItems[newIndex]);
+                          _tasks.insert(newActualIndex, item);
+                        });
+                        setDialogState(() {});
+                      },
+                      itemBuilder: (context, index) {
+                        final item = filteredItems[index];
+                        final title = item['title'] as String;
+                        final isVisible = !(item['isHidden'] == true);
+                        
+                        return Container(
+                          key: ValueKey(title),
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isVisible ? Colors.blueAccent.withValues(alpha: 0.05) : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isVisible ? Colors.blueAccent.withValues(alpha: 0.3) : Colors.grey.shade300,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            child: Row(
+                              children: [
+                                ReorderableDragStartListener(
+                                  index: index,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: Icon(Icons.drag_indicator, size: 20, color: Colors.grey.shade400),
+                                  ),
+                                ),
+                                Icon(Icons.check_circle_outline, size: 20, color: isVisible ? Colors.blueAccent : Colors.grey.shade400),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        item['isHidden'] = isVisible;
+                                      });
+                                      setDialogState(() {});
+                                    },
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Text(
+                                      title,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: isVisible ? FontWeight.w600 : FontWeight.normal,
+                                        color: isVisible ? Colors.black87 : Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      item['isHidden'] = isVisible;
+                                    });
+                                    setDialogState(() {});
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    color: Colors.transparent,
+                                    child: Icon(
+                                      isVisible ? Icons.visibility : Icons.visibility_off,
+                                      size: 20,
+                                      color: isVisible ? Colors.blueAccent : Colors.grey.shade400,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -113,7 +336,9 @@ class _TasksScreenState extends State<TasksScreen> {
 
   // --- STATS LOGIC ---
   Map<String, String> _calculateStats() {
-    final currentTypeTasks = _tasks.where((t) => t['type'] == _selectedTaskType).toList();
+    final currentTypeTasks = _selectedTaskType == 'All' 
+        ? _tasks 
+        : _tasks.where((t) => t['type'] == _selectedTaskType).toList();
     final total = currentTypeTasks.length;
     final done = currentTypeTasks.where((t) => t['isDone'] == true).length;
     final pending = total - done;
@@ -130,7 +355,8 @@ class _TasksScreenState extends State<TasksScreen> {
 
   List<Map<String, dynamic>> _getFilteredTasks() {
     return _tasks.where((task) {
-      if (task['type'] != _selectedTaskType) return false;
+      if (task['isHidden'] == true) return false;
+      if (_selectedTaskType != 'All' && task['type'] != _selectedTaskType) return false;
       
       final matchesSearch = task['title']
           .toString()
@@ -318,7 +544,7 @@ class _TasksScreenState extends State<TasksScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
-          children: ['1x Tasks', 'Recurring Tasks'].map((type) {
+          children: ['All', '1x Tasks', 'Recurring Tasks'].map((type) {
             final isSelected = _selectedTaskType == type;
             return Expanded(
               child: GestureDetector(
@@ -337,7 +563,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     style: TextStyle(
                       color: isSelected ? Colors.black : Colors.grey[500],
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      fontSize: 13,
+                      fontSize: 11,
                     ),
                   ),
                 ),
@@ -384,7 +610,7 @@ class _TasksScreenState extends State<TasksScreen> {
         children: [
           _buildTypeToggle(),
           // 2. Expandable Dashboard
-          _buildDashboard(),
+          if (_showDashboardWidget) _buildDashboard(),
 
           // 3. Quick Filters
           const SizedBox(height: 8),

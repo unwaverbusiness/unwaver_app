@@ -14,11 +14,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
   // --- TOP BAR STATE ---
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _elementFilterController = TextEditingController();
   
   // 2. Dashboard Expansion State
   bool _isDashboardExpanded = true;
+  bool _showDashboardWidget = true;
 
-  String _selectedHabitType = 'Habits to Build';
+  String _selectedHabitType = 'All';
 
   // Dummy data
   final List<Map<String, dynamic>> _habits = [
@@ -33,6 +35,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _elementFilterController.dispose();
     super.dispose();
   }
 
@@ -64,14 +67,234 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
   // --- TOP BAR ACTION SHEETS ---
   void _showFilterSheet() {
-    showModalBottomSheet(
+    _elementFilterController.clear();
+    
+    showDialog(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        height: 300,
-        child: const Center(child: Text("Filter Habits (Coming Soon)", style: TextStyle(fontWeight: FontWeight.bold))),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            
+            // Filter logic
+            final filteredItems = _habits.where((item) {
+              final title = item['title'].toString().toLowerCase();
+              final searchTerm = _elementFilterController.text.toLowerCase();
+              return title.contains(searchTerm);
+            }).toList();
+
+            return Container(
+              padding: const EdgeInsets.all(20),
+              constraints: BoxConstraints(
+                maxWidth: 400,
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.dashboard_customize, color: Colors.blue, size: 24),
+                          const SizedBox(width: 12),
+                          const Text("Customize Habits", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () => Navigator.pop(ctx)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text("Drag to reorder • Tap to show/hide", style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                  const SizedBox(height: 16),
+                  
+                  TextField(
+                    controller: _elementFilterController,
+                    style: const TextStyle(color: Colors.black),
+                    decoration: InputDecoration(
+                      hintText: "Search habits...",
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      prefixIcon: Icon(Icons.search, color: Colors.blue),
+                      suffixIcon: _elementFilterController.text.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear, color: Colors.grey.shade400),
+                              onPressed: () {
+                                _elementFilterController.clear();
+                                setDialogState(() {});
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (value) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 16),
+                  Divider(color: Colors.grey.shade200),
+                  const SizedBox(height: 8),
+
+                  // Static Dashboard Toggle
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _showDashboardWidget ? Colors.blue.withValues(alpha: 0.05) : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _showDashboardWidget ? Colors.blue.withValues(alpha: 0.3) : Colors.grey.shade300,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      child: Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Icon(Icons.drag_indicator, size: 20, color: Colors.transparent), // invisible drag handle
+                          ),
+                          Icon(Icons.dashboard, size: 20, color: _showDashboardWidget ? Colors.blue : Colors.grey.shade400),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _showDashboardWidget = !_showDashboardWidget;
+                                });
+                                setDialogState(() {});
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Text(
+                                "Dashboard Widget",
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: _showDashboardWidget ? FontWeight.w600 : FontWeight.normal,
+                                  color: _showDashboardWidget ? Colors.black87 : Colors.grey.shade500,
+                                ),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _showDashboardWidget = !_showDashboardWidget;
+                              });
+                              setDialogState(() {});
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              color: Colors.transparent,
+                              child: Icon(
+                                _showDashboardWidget ? Icons.visibility : Icons.visibility_off,
+                                size: 20,
+                                color: _showDashboardWidget ? Colors.blue : Colors.grey.shade400,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  Flexible(
+                    child: ReorderableListView.builder(
+                      shrinkWrap: true,
+                      buildDefaultDragHandles: false,
+                      itemCount: filteredItems.length,
+                      onReorder: (oldIndex, newIndex) {
+                        setState(() {
+                          if (newIndex > oldIndex) newIndex--;
+                          final oldActualIndex = _habits.indexOf(filteredItems[oldIndex]);
+                          final item = _habits.removeAt(oldActualIndex);
+                          
+                          final newActualIndex = newIndex == filteredItems.length - 1
+                              ? _habits.length
+                              : _habits.indexOf(filteredItems[newIndex]);
+                          _habits.insert(newActualIndex, item);
+                        });
+                        setDialogState(() {});
+                      },
+                      itemBuilder: (context, index) {
+                        final item = filteredItems[index];
+                        final title = item['title'] as String;
+                        final isVisible = !(item['isHidden'] == true);
+                        
+                        return Container(
+                          key: ValueKey(title),
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isVisible ? Colors.blue.withValues(alpha: 0.05) : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isVisible ? Colors.blue.withValues(alpha: 0.3) : Colors.grey.shade300,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            child: Row(
+                              children: [
+                                ReorderableDragStartListener(
+                                  index: index,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: Icon(Icons.drag_indicator, size: 20, color: Colors.grey.shade400),
+                                  ),
+                                ),
+                                Icon(Icons.cached, size: 20, color: isVisible ? Colors.blue : Colors.grey.shade400),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        item['isHidden'] = isVisible;
+                                      });
+                                      setDialogState(() {});
+                                    },
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Text(
+                                      title,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: isVisible ? FontWeight.w600 : FontWeight.normal,
+                                        color: isVisible ? Colors.black87 : Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      item['isHidden'] = isVisible;
+                                    });
+                                    setDialogState(() {});
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    color: Colors.transparent,
+                                    child: Icon(
+                                      isVisible ? Icons.visibility : Icons.visibility_off,
+                                      size: 20,
+                                      color: isVisible ? Colors.blue : Colors.grey.shade400,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -91,7 +314,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
   // --- INFOGRAPHIC LOGIC ---
   Map<String, String> _calculateStats() {
-    final currentTypeHabits = _habits.where((h) => h['type'] == _selectedHabitType).toList();
+    final currentTypeHabits = _selectedHabitType == 'All' 
+        ? _habits 
+        : _habits.where((h) => h['type'] == _selectedHabitType).toList();
     final totalHabits = currentTypeHabits.length;
     final completedToday = currentTypeHabits.where((h) => h['isCompleted'] == true).length;
     
@@ -255,7 +480,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
-          children: ['Habits to Build', 'Habits to Break'].map((type) {
+          children: ['All', 'Habits to Build', 'Habits to Break'].map((type) {
             final isSelected = _selectedHabitType == type;
             return Expanded(
               child: GestureDetector(
@@ -274,7 +499,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     style: TextStyle(
                       color: isSelected ? Colors.black : Colors.grey[500],
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      fontSize: 13,
+                      fontSize: 11,
                     ),
                   ),
                 ),
@@ -291,9 +516,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
   Widget build(BuildContext context) {
     // Apply search filter locally
     final filteredHabits = _habits.where((habit) {
-      if (habit['type'] != _selectedHabitType) return false;
-      if (_searchController.text.isEmpty) return true;
-      return habit['title'].toString().toLowerCase().contains(_searchController.text.toLowerCase());
+      if (habit['isHidden'] == true) return false;
+      if (_selectedHabitType != 'All' && habit['type'] != _selectedHabitType) return false;
+      if (_searchController.text.isNotEmpty && !habit['title'].toString().toLowerCase().contains(_searchController.text.toLowerCase())) return false;
+      return true;
     }).toList();
 
     return Scaffold(
@@ -319,7 +545,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
         children: [
           _buildTypeToggle(),
           // 2. INFOGRAPHIC (SUMMARY)
-          _buildInfographic(),
+          if (_showDashboardWidget) _buildInfographic(),
 
           // 4. HABIT LIST
           Expanded(

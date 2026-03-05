@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 // Make sure this import matches your actual file structure
 import 'package:unwaver/Screens/settings/settings_screen.dart'; 
+import 'package:unwaver/Screens/stats/statistics_screen.dart';
 
 class MainDrawer extends StatelessWidget {
   final String currentRoute;
@@ -13,7 +14,7 @@ class MainDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: const Color(0xFFF8F9FA), // Slightly off-white for contrast against white tiles
-      width: 260,
+      width: 338,
       child: Column(
         children: [
           // --- HEADER ---
@@ -85,6 +86,13 @@ class MainDrawer extends StatelessWidget {
                   icon: Icons.insights_rounded,
                   text: 'Statistics',
                   route: '/statistics',
+                  onTapOverride: () {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const StatisticsScreen()),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 16),

@@ -1,57 +1,145 @@
 import 'package:flutter/material.dart';
-// USING RELATIVE IMPORT to avoid path errors. 
-// Adjust the number of "../" based on your folder structure.
-import 'package:unwaver/widgets/main_drawer.dart'; 
+import 'package:unwaver/widgets/global_app_bar.dart'; 
+// MainDrawer is intentionally omitted from the widget tree to allow the Back button 
+// to naturally appear and return the user to the previous screen where the drawer was.
 
-class StatisticsScreen extends StatelessWidget {
+class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
+
+  @override
+  State<StatisticsScreen> createState() => _StatisticsScreenState();
+}
+
+class _StatisticsScreenState extends State<StatisticsScreen> {
+  // --- TOP BAR STATE ---
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // --- MOCK BREAKDOWN DATA ---
+  final Map<String, dynamic> _dataBreakdown = {
+    'Goals': {'Total': 12, 'Achieved': 3, 'In Progress': 9},
+    'Habits': {'To Build': 7, 'To Break': 3, 'Active Streaks': 5},
+    'Tasks': {'Total': 24, 'Done': 15, 'Pending': 9},
+    'Events': {'Scheduled': 18, 'Completed': 10},
+    'Purpose Elements': {
+      'Core Values': 4,
+      'Priorities': 3,
+      'Identity Statements': 2,
+      'Strengths': 5,
+    },
+  };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Clean background
-      appBar: AppBar(
-        title: const Text(
-          "Performance",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        centerTitle: true,
+      backgroundColor: Colors.white, // Match theme of goal/habit screens
+      
+      appBar: GlobalAppBar(
+        isSearching: _isSearching,
+        searchController: _searchController,
+        onSearchChanged: (val) => setState(() {}),
+        onCloseSearch: () => setState(() {
+          _isSearching = false;
+          _searchController.clear();
+        }),
+        onSearchTap: () => setState(() => _isSearching = true),
+        onFilterTap: () {
+          // Placeholder for filter
+        },
+        onSortTap: () {
+          // Placeholder for sort
+        },
       ),
-      // PASS THE ROUTE NAME FOR DRAWER HIGHLIGHTING
-      drawer: const MainDrawer(currentRoute: '/statistics'),
+      // Drawer is purposely ignored so GlobalAppBar shows a back button
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- SECTION 1: MAIN SCORECARD ---
+            // --- HEADER ---
+            const Text(
+              "Intelligence & Insights",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              "Your performance across all dimensions.",
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // --- MAIN SCORECARD ---
             _buildMainScoreCard(),
+            const SizedBox(height: 30),
+
+            // --- CATEGORY BREAKDOWN ---
+            const Text(
+              "Total Breakdown",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 15),
+
+            // Goals Breakdown
+            _buildBreakdownSection(
+              title: "Goals Overview",
+              icon: Icons.flag_rounded,
+              color: Colors.blue,
+              stats: _dataBreakdown['Goals'],
+            ),
+            const SizedBox(height: 15),
+            
+            // Habits Breakdown
+            _buildBreakdownSection(
+              title: "Habits Overview",
+              icon: Icons.loop_rounded,
+              color: Colors.green,
+              stats: _dataBreakdown['Habits'],
+            ),
+            const SizedBox(height: 15),
+            
+            // Tasks Breakdown
+            _buildBreakdownSection(
+              title: "Tasks Overview",
+              icon: Icons.check_circle_outline,
+              color: Colors.redAccent,
+              stats: _dataBreakdown['Tasks'],
+            ),
+            const SizedBox(height: 15),
+
+            // Events Breakdown
+            _buildBreakdownSection(
+              title: "Events Overview",
+              icon: Icons.calendar_month_rounded,
+              color: Colors.orange,
+              stats: _dataBreakdown['Events'],
+            ),
+            const SizedBox(height: 15),
+
+            // Purpose Generator Breakdown
+            _buildBreakdownSection(
+              title: "Purpose & Identity Elements",
+              icon: Icons.stars_rounded,
+              color: const Color(0xFFBB8E13), // Gold
+              stats: _dataBreakdown['Purpose Elements'],
+            ),
             
             const SizedBox(height: 30),
-
-            // --- SECTION 2: WEEKLY CONSISTENCY ---
-            const Text(
-              "Weekly Consistency",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 15),
-            _buildWeeklyChart(),
-
-            const SizedBox(height: 30),
-
-            // --- SECTION 3: GOAL BREAKDOWN ---
-            const Text(
-              "Goal Progress",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 15),
-            _buildGoalProgress("Marathon Training", 0.75),
-            _buildGoalProgress("Business Revenue", 0.40),
-            _buildGoalProgress("Reading (Books)", 0.20),
-            _buildGoalProgress("Meditation", 0.90),
           ],
         ),
       ),
@@ -68,10 +156,9 @@ class StatisticsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.black.withValues(alpha:0.3),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 15,
-            offset: const Offset(0, 10),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -101,7 +188,6 @@ class StatisticsScreen extends StatelessWidget {
               ),
             ],
           ),
-          // Circular Progress Indicator used as a chart
           Stack(
             alignment: Alignment.center,
             children: [
@@ -123,67 +209,91 @@ class StatisticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWeeklyChart() {
-    // Mock data for 7 days (0.0 to 1.0)
-    final List<double> dailyProgress = [0.8, 0.6, 1.0, 0.9, 0.4, 0.8, 0.9];
-    final List<String> days = ["M", "T", "W", "T", "F", "S", "S"];
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: List.generate(7, (index) {
-        return Column(
-          children: [
-            Container(
-              width: 12,
-              height: 100 * dailyProgress[index], // Height based on data
-              decoration: BoxDecoration(
-                color: dailyProgress[index] >= 0.8 ? Colors.black : Colors.grey[400],
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              days[index],
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-          ],
-        );
-      }),
-    );
-  }
-
-  Widget _buildGoalProgress(String title, double progress) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20.0),
+  Widget _buildBreakdownSection({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required Map<String, dynamic> stats,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Section Header
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
               Text(
                 title,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-              ),
-              Text(
-                "${(progress * 100).toInt()}%",
-                style: TextStyle(
-                  color: Colors.grey[600],
+                style: const TextStyle(
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: Colors.grey[200],
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.black),
+          const SizedBox(height: 16),
+          // Stats Row
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: stats.entries.map((entry) {
+              return _buildStatChip(entry.key, entry.value.toString(), color);
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatChip(String label, String value, Color accentColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: accentColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
