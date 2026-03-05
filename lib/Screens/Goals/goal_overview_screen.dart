@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Add to pubspec.yaml
 import 'package:unwaver/widgets/main_drawer.dart';
 import 'package:unwaver/widgets/global_app_bar.dart'; 
-import '../Habits/habit_instruction_banner.dart';
 
 // --- MASSIVE ICON LIBRARY ---
 final List<IconData> _availableIcons = [
@@ -34,7 +33,6 @@ class GoalOverviewScreen extends StatefulWidget {
 class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
-  bool _showBanner = true;
   bool _isDashboardExpanded = true; 
   String _selectedGoalType = 'Short-Term';
 
@@ -421,7 +419,6 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
         children: [
           _buildTypeToggle(),
           _buildDashboard(),
-          if (_showBanner) Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0), child: HabitInstructionBanner(onDismiss: () => setState(() => _showBanner = false))),
 
           Expanded(
             child: filteredGoals.isEmpty
