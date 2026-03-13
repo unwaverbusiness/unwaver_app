@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Add intl to pubspec.yaml if missing
+import 'package:intl/intl.dart'; 
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Added for Firestore
 
 class HabitCreationScreen extends StatefulWidget {
   const HabitCreationScreen({super.key});
@@ -17,15 +18,19 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
   final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
+  String _habitType = 'Habits to Build'; // Added Type State
   String _selectedPillar = 'Health';
   String _priority = 'Medium';
   String _urgency = 'Medium';
+  bool _isSaving = false; // Prevent double taps
   
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
   DateTime? _deadline;
 
   // --- Dropdown Options ---
+  final List<String> _habitTypes = ['Habits to Build', 'Habits to Break'];
+  
   final List<String> _pillars = [
     'Faith',
     'Health',
@@ -49,9 +54,9 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Colors.black, // Header background color
-              onPrimary: Colors.white, // Header text color
-              onSurface: Colors.black, // Body text color
+              primary: Colors.black, 
+              onPrimary: Colors.white, 
+              onSurface: Colors.black, 
             ),
           ),
           child: child!,
@@ -72,25 +77,41 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
     }
   }
 
+  // --- BLAZING FAST SAVE LOGIC ---
   void _saveHabit() {
-    if (_formKey.currentState!.validate()) {
-      // Process Data Here
+    if (_formKey.currentState!.validate() && !_isSaving) {
+      setState(() => _isSaving = true);
+
+      // Structure data perfectly for the HabitsScreen stream
       final newHabit = {
-        'name': _nameController.text,
-        'category': _categoryController.text,
+        'title': _nameController.text.trim(), // Mapped to 'title' for the dashboard
+        'type': _habitType, // Build or Break
+        'category': _categoryController.text.trim(),
         'pillar': _selectedPillar,
         'priority': _priority,
         'urgency': _urgency,
-        'description': _descriptionController.text,
+        'description': _descriptionController.text.trim(),
         'startDate': _startDate,
         'endDate': _endDate,
         'deadline': _deadline,
+        
+        // Required functional fields
+        'isCompleted': false,
+        'streak': 0,
+        'isHidden': false,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastUpdated': FieldValue.serverTimestamp(),
       };
 
+      // Push to Firestore (Handles offline caching automatically for instant speed)
+      FirebaseFirestore.instance.collection('habits').add(newHabit);
+
       if (kDebugMode) {
-        print("Habit Created: $newHabit");
-      } // Debug print
-      Navigator.pop(context); // Go back to previous screen
+        print("Habit Created & Pushed to Firestore: ${_nameController.text}");
+      }
+      
+      // Pop instantly. The StreamBuilder on HabitsScreen will catch it immediately.
+      Navigator.pop(context); 
     }
   }
 
@@ -105,7 +126,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
           TextButton(
-            onPressed: _saveHabit,
+            onPressed: _isSaving ? null : _saveHabit,
             child: const Text(
               "SAVE",
               style: TextStyle(color: Color.fromARGB(255, 187, 142, 19), fontWeight: FontWeight.bold),
@@ -127,31 +148,17 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 2. Pillar (Dropdown)
-            _buildLabel("Life Pillar"),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade400),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedPillar,
-                  isExpanded: true,
-                  items: _pillars.map((String pillar) {
-                    return DropdownMenuItem<String>(
-                      value: pillar,
-                      child: Text(pillar),
-                    );
-                  }).toList(),
-                  onChanged: (val) => setState(() => _selectedPillar = val!),
-                ),
-              ),
-            ),
+            // 2. Classification (Build vs Break) - ADDED HERE
+            _buildLabel("Classification"),
+            _buildDropdown(_habitTypes, _habitType, (val) => setState(() => _habitType = val!)),
             const SizedBox(height: 20),
 
-            // 3. Category
+            // 3. Pillar (Dropdown)
+            _buildLabel("Life Pillar"),
+            _buildDropdown(_pillars, _selectedPillar, (val) => setState(() => _selectedPillar = val!)),
+            const SizedBox(height: 20),
+
+            // 4. Category
             _buildLabel("Category (Sub-pillar)"),
             TextFormField(
               controller: _categoryController,
@@ -159,7 +166,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 4. Priority & Urgency Row
+            // 5. Priority & Urgency Row
             Row(
               children: [
                 Expanded(
@@ -185,7 +192,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 5. Dates Section
+            // 6. Dates Section
             _buildLabel("Timeline"),
             Container(
               padding: const EdgeInsets.all(16),
@@ -206,7 +213,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 6. Description
+            // 7. Description
             _buildLabel("Description / Why?"),
             TextFormField(
               controller: _descriptionController,
@@ -216,18 +223,20 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             
             const SizedBox(height: 40),
             
-            // 7. Create Button (Main)
+            // 8. Create Button (Main)
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _saveHabit,
+                onPressed: _isSaving ? null : _saveHabit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text("CREATE HABIT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                child: _isSaving 
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text("CREATE HABIT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
           ],
