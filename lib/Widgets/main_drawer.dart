@@ -1,9 +1,10 @@
 // ignore_for_file: file_names
 
 import 'package:flutter/material.dart';
-// Make sure this import matches your actual file structure
+// Ensure these paths match your actual folder structure
 import 'package:unwaver/Screens/settings/settings_screen.dart'; 
 import 'package:unwaver/Screens/stats/statistics_screen.dart';
+import 'package:unwaver/Screens/life_resume/life_resume_screen.dart';
 
 class MainDrawer extends StatelessWidget {
   final String currentRoute;
@@ -13,7 +14,7 @@ class MainDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: const Color(0xFFF8F9FA), // Slightly off-white for contrast against white tiles
+      backgroundColor: const Color(0xFFF8F9FA), 
       width: 338,
       child: Column(
         children: [
@@ -42,7 +43,7 @@ class MainDrawer extends StatelessWidget {
                       )
                     ],
                     image: const DecorationImage(
-                      image: AssetImage('assets/Unwaver_App_Icon.png'),
+                      image: AssetImage('assets/Unwaver App Icon.png'), // Exact asset name
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -74,7 +75,6 @@ class MainDrawer extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               children: [
-                _buildSectionHeader("Intelligence & Insights"),
                 _buildDrawerItem(
                   context,
                   icon: Icons.psychology,
@@ -87,16 +87,14 @@ class MainDrawer extends StatelessWidget {
                   text: 'Statistics',
                   route: '/statistics',
                   onTapOverride: () {
-                    Navigator.pop(context); // Close the drawer
+                    Navigator.pop(context); 
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const StatisticsScreen()),
+                      // Removed const here to prevent constructor errors
+                      MaterialPageRoute(builder: (context) => StatisticsScreen()), 
                     );
                   },
                 ),
-
-                const SizedBox(height: 16),
-                _buildSectionHeader("Organization"),
                 _buildDrawerItem(
                   context,
                   icon: Icons.label_outline_rounded,
@@ -105,9 +103,17 @@ class MainDrawer extends StatelessWidget {
                 ),
                 _buildDrawerItem(
                   context,
-                  icon: Icons.fact_check_outlined,
-                  text: 'Completion Log',
-                  route: '/completion_log',
+                  icon: Icons.badge_outlined, 
+                  text: 'Life Resume',
+                  route: '/life_resume',
+                  onTapOverride: () {
+                    Navigator.pop(context); 
+                    Navigator.push(
+                      context,
+                      // Removed const here to prevent constructor errors
+                      MaterialPageRoute(builder: (context) => LifeResumeScreen()),
+                    );
+                  },
                 ),
                 _buildDrawerItem(
                   context,
@@ -115,9 +121,6 @@ class MainDrawer extends StatelessWidget {
                   text: 'Reminders',
                   route: '/reminders',
                 ),
-
-                const SizedBox(height: 16),
-                _buildSectionHeader("Social & Collaboration"),
                 _buildDrawerItem(
                   context,
                   icon: Icons.handshake_outlined,
@@ -148,12 +151,12 @@ class MainDrawer extends StatelessWidget {
                 icon: Icons.settings_outlined,
                 text: 'Settings',
                 route: '/settings',
-                // --- OVERRIDE FOR ACTUAL NAVIGATION ---
                 onTapOverride: () {
-                  Navigator.pop(context); // Close the drawer
+                  Navigator.pop(context); 
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                    // Removed const here to prevent constructor errors
+                    MaterialPageRoute(builder: (context) => SettingsScreen()),
                   );
                 },
               ),
@@ -165,21 +168,6 @@ class MainDrawer extends StatelessWidget {
   }
 
   // --- HELPER WIDGETS ---
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 12, bottom: 8, top: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          color: Colors.grey.shade500,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
-  }
 
   Widget _buildDrawerItem(
     BuildContext context, {
@@ -210,16 +198,12 @@ class MainDrawer extends StatelessWidget {
         ),
         selected: isSelected,
         selectedTileColor: Colors.white, 
-        // Subtle hover/tap background for non-selected items
         tileColor: isSelected ? Colors.white : Colors.transparent,
         onTap: onTapOverride ?? () {
-          // Close the drawer immediately
           Navigator.pop(context);
 
-          // If it's already the active screen, do nothing
           if (isSelected) return;
 
-          // Placeholder logic: Show snackbar instead of navigating
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('$text coming soon!'),

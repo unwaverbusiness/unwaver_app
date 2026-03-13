@@ -196,7 +196,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
           _innerCircleSections = _parseItemList(data['innerCircleSections']);
           if (_innerCircleSections.isEmpty) {
             _innerCircleSections = [
-              {'title': 'Life Partner', 'isHidden': false},
+              {'title': 'Partner', 'isHidden': false},
               {'title': 'Best Friend', 'isHidden': false},
               {'title': 'Parents', 'isHidden': false},
               {'title': 'Siblings', 'isHidden': false},
@@ -484,7 +484,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
     final allCategories = _innerCircleSections.map((s) => s['title'] as String).toList();
     final availableCategories = allCategories.where((c) {
       final count = _innerCircle.where((e) => e['category'] == c).length;
-      if (c == 'Life Partner' && count >= 1) return false;
+      if (c == 'Partner' && count >= 1) return false;
       if (c == 'Best Friend' && count >= 3) return false;
       if (c == 'Parents' && count >= 4) return false;
       return true;
@@ -893,7 +893,7 @@ class _PurposeGeneratorScreenState extends State<PurposeGeneratorScreen> {
                     side: BorderSide.none, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   );
                 }),
-                if ((cat == 'Life Partner' && categoryItems.isNotEmpty) ||
+                if ((cat == 'Partner' && categoryItems.isNotEmpty) ||
                     (cat == 'Best Friend' && categoryItems.length >= 3) ||
                     (cat == 'Parents' && categoryItems.length >= 4))
                   const SizedBox.shrink()
