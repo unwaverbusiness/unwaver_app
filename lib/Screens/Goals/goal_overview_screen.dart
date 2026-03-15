@@ -337,7 +337,9 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
   void _showAddGoalDialog() {
     final titleController = TextEditingController();
     final subtitleController = TextEditingController();
-    String selectedType = _selectedGoalType;
+    
+    // FIX: Guard against 'All' being passed into the dropdown
+    String selectedType = _selectedGoalType == 'All' ? 'Short-Term' : _selectedGoalType;
     Color selectedColor = Colors.blue;
     IconData selectedIcon = Icons.star;
     DateTime selectedDate = DateTime.now().add(const Duration(days: 30));
@@ -497,7 +499,11 @@ class _GoalOverviewScreenState extends State<GoalOverviewScreen> {
                             "notes": "",
                             "milestones": [],
                           });
-                          _selectedGoalType = selectedType;
+                          
+                          // Optional: Reset filter to 'All' or the newly created type so the user sees it immediately
+                          if (_selectedGoalType != 'All' && _selectedGoalType != selectedType) {
+                            _selectedGoalType = selectedType;
+                          }
                         });
                         Navigator.pop(ctx);
                       },
