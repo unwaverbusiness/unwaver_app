@@ -10,9 +10,9 @@ class ReminderItem {
   final String subtitle;
   final ReminderType type;
   final double? progress; // 0.0 to 1.0 (For Goals)
-  final String? time;     // (For Schedule)
-  final int? streak;      // (For Habits)
-  bool isEnabled;         // The "Toggle Settings" state
+  final String? time; // (For Schedule)
+  final int? streak; // (For Habits)
+  bool isEnabled; // The "Toggle Settings" state
 
   ReminderItem({
     required this.id,
@@ -35,24 +35,67 @@ class ReminderScreen extends StatefulWidget {
   State<ReminderScreen> createState() => _ReminderScreenState();
 }
 
-class _ReminderScreenState extends State<ReminderScreen> with SingleTickerProviderStateMixin {
+class _ReminderScreenState extends State<ReminderScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   // Mock Data
   final List<ReminderItem> _items = [
     // Habits
-    ReminderItem(id: '1', title: 'Morning Jog', subtitle: 'Daily at 6:00 AM', type: ReminderType.habit, streak: 12),
-    ReminderItem(id: '2', title: 'Drink Water', subtitle: 'Every 2 hours', type: ReminderType.habit, streak: 5, isEnabled: false),
-    ReminderItem(id: '3', title: 'Read 10 Pages', subtitle: 'Before bed', type: ReminderType.habit, streak: 30),
-    
+    ReminderItem(
+        id: '1',
+        title: 'Morning Jog',
+        subtitle: 'Daily at 6:00 AM',
+        type: ReminderType.habit,
+        streak: 12),
+    ReminderItem(
+        id: '2',
+        title: 'Drink Water',
+        subtitle: 'Every 2 hours',
+        type: ReminderType.habit,
+        streak: 5,
+        isEnabled: false),
+    ReminderItem(
+        id: '3',
+        title: 'Read 10 Pages',
+        subtitle: 'Before bed',
+        type: ReminderType.habit,
+        streak: 30),
+
     // Goals
-    ReminderItem(id: '4', title: 'Save \$5000', subtitle: '\$3,200 / \$5,000 saved', type: ReminderType.goal, progress: 0.64),
-    ReminderItem(id: '5', title: 'Learn Flutter', subtitle: 'Module 4 of 10', type: ReminderType.goal, progress: 0.4, isEnabled: false),
-    
+    ReminderItem(
+        id: '4',
+        title: 'Save \$5000',
+        subtitle: '\$3,200 / \$5,000 saved',
+        type: ReminderType.goal,
+        progress: 0.64),
+    ReminderItem(
+        id: '5',
+        title: 'Learn Flutter',
+        subtitle: 'Module 4 of 10',
+        type: ReminderType.goal,
+        progress: 0.4,
+        isEnabled: false),
+
     // Schedule
-    ReminderItem(id: '6', title: 'Team Standup', subtitle: 'Zoom Link • 15 mins', type: ReminderType.schedule, time: '10:00 AM'),
-    ReminderItem(id: '7', title: 'Dentist Appt', subtitle: 'Dr. Smith', type: ReminderType.schedule, time: '2:30 PM'),
-    ReminderItem(id: '8', title: 'Client Call', subtitle: 'Project Review', type: ReminderType.schedule, time: '4:00 PM'),
+    ReminderItem(
+        id: '6',
+        title: 'Team Standup',
+        subtitle: 'Zoom Link • 15 mins',
+        type: ReminderType.schedule,
+        time: '10:00 AM'),
+    ReminderItem(
+        id: '7',
+        title: 'Dentist Appt',
+        subtitle: 'Dr. Smith',
+        type: ReminderType.schedule,
+        time: '2:30 PM'),
+    ReminderItem(
+        id: '8',
+        title: 'Client Call',
+        subtitle: 'Project Review',
+        type: ReminderType.schedule,
+        time: '4:00 PM'),
   ];
 
   @override
@@ -75,7 +118,8 @@ class _ReminderScreenState extends State<ReminderScreen> with SingleTickerProvid
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7), // Soft grey background
       appBar: AppBar(
-        title: const Text('My Day', style: TextStyle(fontWeight: FontWeight.bold)),
+        title:
+            const Text('My Day', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: false,
         backgroundColor: Colors.white,
         elevation: 0,
@@ -98,7 +142,8 @@ class _ReminderScreenState extends State<ReminderScreen> with SingleTickerProvid
             onPressed: () {
               // Placeholder for a global settings modal
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Open Global Notification Settings')),
+                const SnackBar(
+                    content: Text('Open Global Notification Settings')),
               );
             },
           )
@@ -113,6 +158,7 @@ class _ReminderScreenState extends State<ReminderScreen> with SingleTickerProvid
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () {},
         icon: const Icon(Icons.add),
         label: const Text('New Reminder'),
@@ -163,7 +209,7 @@ class _ReminderTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -187,7 +233,8 @@ class _ReminderTile extends StatelessWidget {
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: isEnabled ? Colors.black87 : mutedColor,
-                            decoration: isEnabled ? null : TextDecoration.lineThrough,
+                            decoration:
+                                isEnabled ? null : TextDecoration.lineThrough,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -220,8 +267,7 @@ class _ReminderTile extends StatelessWidget {
                     value: item.progress,
                     backgroundColor: Colors.grey[100],
                     valueColor: AlwaysStoppedAnimation<Color>(
-                       isEnabled ? Colors.orangeAccent : mutedColor
-                    ),
+                        isEnabled ? Colors.orangeAccent : mutedColor),
                     minHeight: 6,
                   ),
                 ),
@@ -256,19 +302,16 @@ class _ReminderTile extends StatelessWidget {
 
     // Special layout for Schedule (shows time big)
     if (item.type == ReminderType.schedule && item.time != null) {
-       return Container(
+      return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withValues(alpha:0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           item.time!.split(' ')[0], // Just the time
           style: TextStyle(
-            color: color, 
-            fontWeight: FontWeight.bold,
-            fontSize: 14
-          ),
+              color: color, fontWeight: FontWeight.bold, fontSize: 14),
         ),
       );
     }
@@ -277,7 +320,7 @@ class _ReminderTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.1),
+        color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: Icon(icon, color: color, size: 22),
@@ -286,9 +329,12 @@ class _ReminderTile extends StatelessWidget {
 
   Color _getColor(ReminderType type) {
     switch (type) {
-      case ReminderType.habit: return Colors.green;
-      case ReminderType.goal: return Colors.orange;
-      case ReminderType.schedule: return Colors.blue;
+      case ReminderType.habit:
+        return Colors.green;
+      case ReminderType.goal:
+        return Colors.orange;
+      case ReminderType.schedule:
+        return Colors.blue;
     }
   }
 }

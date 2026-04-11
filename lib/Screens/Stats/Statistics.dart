@@ -13,7 +13,7 @@ import '../Schedule/schedule_screen.dart';
 
 // --- ADD THIS IMPORT ---
 // Update this path to wherever your MainLayout file is located (e.g., '../main_layout.dart')
-import '../main_layout.dart'; 
+import '../layout/main_layout.dart'; 
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});

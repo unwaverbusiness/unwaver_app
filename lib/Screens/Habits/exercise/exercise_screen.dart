@@ -123,11 +123,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                   onDelete: () => _deleteExercise(exercises[index].id),
                   onUpdateName: (newName) =>
                       _updateExerciseName(exercises[index].id, newName),
-                  onSetChanged: () => setState(() {}), // Refresh UI on set changes
+                  onSetChanged: () =>
+                      setState(() {}), // Refresh UI on set changes
                 );
               },
             ),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         onPressed: _showAddExerciseDialog,
         child: const Icon(Icons.add),
       ),
@@ -178,7 +180,8 @@ class ExerciseCard extends StatelessWidget {
           onChanged: (val) => tempName = val,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               if (tempName.isNotEmpty) {
@@ -222,23 +225,40 @@ class ExerciseCard extends StatelessWidget {
                   onPressed: () => _editExerciseName(context),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete, size: 20, color: Colors.redAccent),
+                  icon: const Icon(Icons.delete,
+                      size: 20, color: Colors.redAccent),
                   onPressed: onDelete,
                 ),
               ],
             ),
             const Divider(),
-            
+
             // Sets Header
             if (exercise.sets.isNotEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
                 child: Row(
                   children: [
-                    Expanded(flex: 1, child: Center(child: Text("Set", style: TextStyle(fontWeight: FontWeight.bold)))),
-                    Expanded(flex: 2, child: Center(child: Text("Reps", style: TextStyle(fontWeight: FontWeight.bold)))),
-                    Expanded(flex: 3, child: Center(child: Text("Weight", style: TextStyle(fontWeight: FontWeight.bold)))),
-                    Expanded(flex: 1, child: SizedBox()), // Delete button spacer
+                    Expanded(
+                        flex: 1,
+                        child: Center(
+                            child: Text("Set",
+                                style:
+                                    TextStyle(fontWeight: FontWeight.bold)))),
+                    Expanded(
+                        flex: 2,
+                        child: Center(
+                            child: Text("Reps",
+                                style:
+                                    TextStyle(fontWeight: FontWeight.bold)))),
+                    Expanded(
+                        flex: 3,
+                        child: Center(
+                            child: Text("Weight",
+                                style:
+                                    TextStyle(fontWeight: FontWeight.bold)))),
+                    Expanded(
+                        flex: 1, child: SizedBox()), // Delete button spacer
                   ],
                 ),
               ),
@@ -259,18 +279,20 @@ class ExerciseCard extends StatelessWidget {
                         backgroundColor: Colors.grey[200],
                         child: Text(
                           "${idx + 1}",
-                          style: const TextStyle(fontSize: 12, color: Colors.black),
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.black),
                         ),
                       ),
                     ),
-                    
+
                     // Reps Input
                     Expanded(
                       flex: 2,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: TextFormField(
-                          initialValue: set.reps == 0 ? '' : set.reps.toString(),
+                          initialValue:
+                              set.reps == 0 ? '' : set.reps.toString(),
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.center,
                           decoration: const InputDecoration(
@@ -293,8 +315,11 @@ class ExerciseCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: TextFormField(
-                              initialValue: set.weight == 0 ? '' : set.weight.toString(),
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              initialValue:
+                                  set.weight == 0 ? '' : set.weight.toString(),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
                               textAlign: TextAlign.center,
                               decoration: const InputDecoration(
                                 isDense: true,
@@ -317,7 +342,8 @@ class ExerciseCard extends StatelessWidget {
                               onSetChanged();
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 8),
                               decoration: BoxDecoration(
                                 color: Colors.blueAccent.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
@@ -341,7 +367,8 @@ class ExerciseCard extends StatelessWidget {
                     Expanded(
                       flex: 1,
                       child: IconButton(
-                        icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                        icon: const Icon(Icons.close,
+                            size: 18, color: Colors.grey),
                         onPressed: () => _removeSet(idx),
                       ),
                     ),
@@ -351,7 +378,7 @@ class ExerciseCard extends StatelessWidget {
             }),
 
             const SizedBox(height: 12),
-            
+
             // Add Set Button
             SizedBox(
               width: double.infinity,
@@ -360,7 +387,8 @@ class ExerciseCard extends StatelessWidget {
                 icon: const Icon(Icons.add),
                 label: const Text('Add Set'),
                 style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ),

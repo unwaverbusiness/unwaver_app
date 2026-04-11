@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart'; 
-import 'package:unwaver/screens/accounts/register_screen.dart'; 
-import 'package:unwaver/screens/main_layout.dart'; // Added import for MainLayout
+import 'package:unwaver/screens/login/register_screen.dart'; 
+import 'package:unwaver/screens/layout/main_layout.dart'; // Added import for MainLayout
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});

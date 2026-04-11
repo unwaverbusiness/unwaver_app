@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Needed for Autofill completion
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:unwaver/screens/accounts/login_screen.dart';
-import 'package:unwaver/screens/main_layout.dart';
+import 'package:unwaver/screens/login/login_screen.dart';
+import 'package:unwaver/screens/layout/main_layout.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
