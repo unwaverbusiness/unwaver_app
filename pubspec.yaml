@@ -42,10 +42,13 @@ dependencies:
   fl_chart: ^0.66.0
   lottie: ^3.3.2
 
-  # --- For Biometric Authentication ---
-  local_auth: ^2.1.0
+  # --- Community & Media (NEW) ---
+  firebase_storage: 13.0.6
+  image_picker: ^1.1.2
+  share_plus: ^10.0.0
 
-  # --- For Color Wheel ---
+  # --- Security & Extras ---
+  local_auth: ^2.1.0
   flutter_colorpicker: ^1.1.0
 
 dev_dependencies:

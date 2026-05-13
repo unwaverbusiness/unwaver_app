@@ -39,29 +39,37 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
   // --- FIREBASE OPERATIONS ---
 
-  // Unified state update for the 3-way toggle (Complete, Skip, Fail)
-  Future<void> _updateHabitState(DocumentSnapshot doc, String stateType) async {
+  // Helper method to map Firebase booleans to the unified CardStatus enum
+  CardStatus _determineStatus(Map<String, dynamic> data) {
+    if (data['isCompleted'] == true) return CardStatus.completed;
+    if (data['isSkipped'] == true) return CardStatus.skipped;
+    if (data['isFailed'] == true) return CardStatus.failed;
+    return CardStatus.none;
+  }
+
+  // Unified state update connected directly to the ReusableCard's onStatusChanged
+  Future<void> _updateHabitState(DocumentSnapshot doc, CardStatus newStatus) async {
     HapticFeedback.lightImpact();
     final data = doc.data() as Map<String, dynamic>;
     final int currentStreak = data['streak'] ?? 0;
+    final bool wasCompleted = data['isCompleted'] ?? false;
 
-    bool isCompleted = false;
-    bool isSkipped = false;
-    bool isFailed = false;
+    // Map the incoming enum back to booleans for the database
+    bool isCompleted = newStatus == CardStatus.completed;
+    bool isSkipped = newStatus == CardStatus.skipped;
+    bool isFailed = newStatus == CardStatus.failed;
+
     int newStreak = currentStreak;
 
-    // Logic to ensure only one toggle is active at a time and streak is handled safely
-    if (stateType == 'complete') {
-      isCompleted = !(data['isCompleted'] ?? false);
-      newStreak = isCompleted
-          ? currentStreak + 1
-          : (currentStreak > 0 ? currentStreak - 1 : 0);
-    } else if (stateType == 'skip') {
-      isSkipped = !(data['isSkipped'] ?? false);
-    } else if (stateType == 'fail') {
-      isFailed = !(data['isFailed'] ?? false);
-      newStreak =
-          isFailed ? 0 : currentStreak; // Failing resets the streak to 0
+    // Streak handling logic
+    if (isCompleted && !wasCompleted) {
+      newStreak = currentStreak + 1; // Increment if newly completed
+    } else if (!isCompleted && wasCompleted) {
+      newStreak = currentStreak > 0 ? currentStreak - 1 : 0; // Decrement if completion is undone
+    }
+
+    if (isFailed) {
+      newStreak = 0; // Failing immediately resets the streak to 0
     }
 
     await _habitsCollection.doc(doc.id).update({
@@ -103,6 +111,22 @@ class _HabitsScreenState extends State<HabitsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const HabitCreationScreen()),
+    );
+  }
+
+  Future<void> _showEditHabitDialog(DocumentSnapshot doc) async {
+    final data = doc.data() as Map<String, dynamic>;
+    
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _EditHabitScreen(
+          doc: doc,
+          data: data,
+          habitsCollection: _habitsCollection,
+          formatPriority: _formatPriority,
+          formatUrgency: _formatUrgency,
+        ),
+      ),
     );
   }
 
@@ -401,11 +425,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           final String title = data['title'] ?? 'Untitled';
                           final int streak = data['streak'] ?? 0;
 
-                          // Toggle States
-                          final bool isCompleted = data['isCompleted'] ?? false;
-                          final bool isSkipped = data['isSkipped'] ?? false;
-                          final bool isFailed = data['isFailed'] ?? false;
-
                           // Parse Deadline securely
                           DateTime? parsedDeadline;
                           if (data['deadline'] != null) {
@@ -413,37 +432,57 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                 (data['deadline'] as Timestamp).toDate();
                           }
 
+                          final bool isExercise = data['isExercise'] == true ||
+                              data['category']?.toString().toLowerCase() == 'exercise';
+                          final List<String> tags = [];
+                          if (data['category'] != null && data['category'].toString().isNotEmpty) {
+                            tags.add(data['category'].toString());
+                          }
+                          if (data['tags'] is List) {
+                            for (var rawTag in data['tags'] as List) {
+                              final tag = rawTag.toString().trim();
+                              if (tag.isNotEmpty && !tags.contains(tag)) {
+                                tags.add(tag);
+                              }
+                            }
+                          }
+
                           return GestureDetector(
-                            // Tapping the card body opens the main detail view
-                            onTap: () =>
-                                _navToHabitDetail(title, 'Main Dashboard'),
+                            // Tapping the card body opens the edit dialog
+                            onTap: () => _showEditHabitDialog(doc),
                             child: ReusableCard(
+                              habitId: doc.id,
                               title: title,
                               description: "$streak Day Streak",
-                              icon: Icons
-                                  .local_fire_department, // Static Icon (Never overwritten)
+                              icon: Icons.fitness_center,
                               color: Colors.black87,
+                              isExercise: isExercise,
+                              onWorkoutSaved: isExercise
+                                  ? (workoutData) async {
+                                      final messenger = ScaffoldMessenger.of(context);
+                                      await _habitsCollection.doc(doc.id).update({
+                                        'exerciseLogs': FieldValue.arrayUnion([workoutData]),
+                                        'lastWorkout': workoutData,
+                                      });
+                                      if (!mounted) return;
+                                      messenger.showSnackBar(const SnackBar(
+                                          content: Text('Workout logged successfully.')));
+                                    }
+                                  : null,
 
                               // Pass Metadata dynamically
                               pillar: data['pillar'],
-                              tags: data['category'] != null
-                                  ? [data['category']]
-                                  : null,
+                              tags: tags.isNotEmpty ? tags : null,
                               urgency: data['urgency'],
-                              importance: data[
-                                  'priority'], // Mapping your creation screen 'priority' to 'importance'
+                              priority: data['priority'], 
                               deadline: parsedDeadline,
 
-                              // Pass Toggle States to trigger visuals
-                              initialCompleted: isCompleted,
-                              initialSkipped: isSkipped,
-                              initialFailed: isFailed,
+                              // Pass unified initial state
+                              initialStatus: _determineStatus(data),
 
-                              // Connect the Segmented Toggle Actions to Firestore
-                              onComplete: () =>
-                                  _updateHabitState(doc, 'complete'),
-                              onSkip: () => _updateHabitState(doc, 'skip'),
-                              onFail: () => _updateHabitState(doc, 'fail'),
+                              // Connect the single Status Callback to Firestore
+                              onStatusChanged: (newStatus) => 
+                                  _updateHabitState(doc, newStatus),
 
                               // Connect the Secondary Tools to Navigation
                               onCalendarTap: () =>
@@ -455,7 +494,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                               onTagsTap: () => _navToHabitDetail(title, 'Tags'),
 
                               // Management Actions
-                              onEdit: () => _navToHabitDetail(title, 'Edit'),
+                              onEdit: () => _showEditHabitDialog(doc),
                               onDelete: () => _deleteHabit(doc.id),
                             ),
                           );
@@ -472,6 +511,323 @@ class _HabitsScreenState extends State<HabitsScreen> {
         backgroundColor: Colors.black,
         elevation: 4,
         child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  // --- FORMATTER HELPERS ---
+
+  String _formatPriority(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'low': return 'P1';
+      case 'medium': return 'P2';
+      case 'high': return 'P3';
+      case 'critical': return 'P4';
+      default: return priority;
+    }
+  }
+
+  String _formatUrgency(String urgency) {
+    switch (urgency.toLowerCase()) {
+      case 'low': return '!';
+      case 'medium': return '!!';
+      case 'high': return '!!!';
+      case 'critical': return '!!!!';
+      default: return urgency;
+    }
+  }
+}
+
+// --- EDIT HABIT SCREEN (FULL-SCREEN) ---
+
+class _EditHabitScreen extends StatefulWidget {
+  final DocumentSnapshot doc;
+  final Map<String, dynamic> data;
+  final CollectionReference habitsCollection;
+  final Function(String) formatPriority;
+  final Function(String) formatUrgency;
+
+  const _EditHabitScreen({
+    required this.doc,
+    required this.data,
+    required this.habitsCollection,
+    required this.formatPriority,
+    required this.formatUrgency,
+  });
+
+  @override
+  State<_EditHabitScreen> createState() => _EditHabitScreenState();
+}
+
+class _EditHabitScreenState extends State<_EditHabitScreen> {
+  late TextEditingController titleCtrl;
+  late TextEditingController categoryCtrl;
+  late TextEditingController tagsCtrl;
+  late TextEditingController descriptionCtrl;
+  
+  late String habitType;
+  late String selectedPillar;
+  late String priority;
+  late String urgency;
+  late bool isExercise;
+  bool _isSaving = false;
+
+  final List<String> _habitTypes = ['Habits to Build', 'Habits to Break'];
+  final List<String> _pillars = ['Faith', 'Health', 'Relationships', 'Optimization', 'Education', 'Work', 'Creativity'];
+  final List<String> _levels = ['Low', 'Medium', 'High', 'Critical'];
+
+  @override
+  void initState() {
+    super.initState();
+    final tags = (widget.data['tags'] as List<dynamic>?)
+            ?.map((tag) => tag.toString())
+            .toList() ??
+        [];
+    
+    titleCtrl = TextEditingController(text: widget.data['title'] ?? '');
+    categoryCtrl = TextEditingController(text: widget.data['category'] ?? '');
+    tagsCtrl = TextEditingController(text: tags.join(', '));
+    descriptionCtrl = TextEditingController(text: widget.data['description'] ?? '');
+    
+    habitType = widget.data['type'] ?? 'Habits to Build';
+    selectedPillar = widget.data['pillar'] ?? 'Health';
+    priority = widget.data['priority'] ?? 'Medium';
+    urgency = widget.data['urgency'] ?? 'Medium';
+    isExercise = widget.data['isExercise'] == true;
+  }
+
+  @override
+  void dispose() {
+    titleCtrl.dispose(); // <-- Added missing controller
+    categoryCtrl.dispose();
+    tagsCtrl.dispose();
+    descriptionCtrl.dispose();
+    super.dispose();
+  }
+
+  void _saveHabit() async {
+      if (titleCtrl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a habit name'))
+        );
+        return;
+      }
+
+      // Dismiss keyboard for a smoother UX while saving
+      FocusScope.of(context).unfocus(); 
+
+      setState(() => _isSaving = true);
+    
+    // ... rest of your try/catch block
+    
+    try {
+      final updatedTags = tagsCtrl.text
+          .split(',')
+          .map((tag) => tag.trim())
+          .where((tag) => tag.isNotEmpty)
+          .toList();
+
+      await widget.habitsCollection.doc(widget.doc.id).update({
+        'title': titleCtrl.text.trim(),
+        'category': categoryCtrl.text.trim(),
+        'tags': updatedTags,
+        'isExercise': isExercise,
+        'type': habitType,
+        'pillar': selectedPillar,
+        'priority': priority,
+        'urgency': urgency,
+        'description': descriptionCtrl.text.trim(),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Habit updated successfully')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text("Edit Habit", style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+        actions: [
+          TextButton(
+            onPressed: _isSaving ? null : _saveHabit,
+            child: const Text(
+              "SAVE",
+              style: TextStyle(color: Color.fromARGB(255, 187, 142, 19), fontWeight: FontWeight.bold),
+            ),
+          )
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          // 1. Name
+          _buildLabel("Habit Name"),
+          TextField(
+            controller: titleCtrl,
+            decoration: _inputDecoration("e.g. Morning Run"),
+          ),
+          const SizedBox(height: 20),
+
+          // 2. Classification (Build vs Break)
+          _buildLabel("Classification"),
+          _buildDropdown(_habitTypes, habitType, (val) => setState(() => habitType = val!)),
+          const SizedBox(height: 20),
+
+          // 3. Pillar (Dropdown)
+          _buildLabel("Life Pillar"),
+          _buildDropdown(_pillars, selectedPillar, (val) => setState(() => selectedPillar = val!)),
+          const SizedBox(height: 20),
+
+          // 4. Category
+          _buildLabel("Category (Sub-pillar)"),
+          TextField(
+            controller: categoryCtrl,
+            decoration: _inputDecoration("e.g. Cardio"),
+          ),
+          const SizedBox(height: 16),
+          _buildLabel("Tags"),
+          TextField(
+            controller: tagsCtrl,
+            decoration: _inputDecoration("Comma-separated tags, e.g. Exercise, Strength"),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Text("Mark as Exercise Habit",
+                    style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+              ),
+              Switch(
+                value: isExercise,
+                activeThumbColor: Colors.black,
+                onChanged: (value) => setState(() => isExercise = value),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // 5. Priority & Urgency Row
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLabel("Priority"),
+                    _buildFormattedDropdown(_levels, priority, (val) => setState(() => priority = val!), widget.formatPriority),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLabel("Urgency"),
+                    _buildFormattedDropdown(_levels, urgency, (val) => setState(() => urgency = val!), widget.formatUrgency),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // 6. Description
+          _buildLabel("Description / Why?"),
+          TextField(
+            controller: descriptionCtrl,
+            maxLines: 4,
+            decoration: _inputDecoration("Describe the habit and why it matters..."),
+          ),
+          
+          const SizedBox(height: 40),
+          
+          // 7. Save Button (Main)
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _isSaving ? null : _saveHabit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: _isSaving 
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("UPDATE HABIT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Helper Widgets ---
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      border: const OutlineInputBorder(),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    );
+  }
+
+  Widget _buildDropdown(List<String> items, String currentValue, ValueChanged<String?> onChanged) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade400),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: currentValue,
+          isExpanded: true,
+          items: items.map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormattedDropdown(List<String> items, String currentValue, ValueChanged<String?> onChanged, Function(String) formatter) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade400),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: currentValue,
+          isExpanded: true,
+          items: items.map((val) => DropdownMenuItem(value: val, child: Text('$val (${formatter(val)})'))).toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }

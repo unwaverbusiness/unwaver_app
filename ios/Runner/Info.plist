@@ -47,5 +47,11 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 		<string>Unwaver needs Face ID to securely log you in without a password.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+		<string>Unwaver requires access to your photo library so you can share progress images with the community.</string>
+	<key>NSCameraUsageDescription</key>
+		<string>Unwaver requires access to your camera to take photos for community posts.</string>
+	<key>NSMicrophoneUsageDescription</key>
+		<string>Unwaver requires access to your microphone to record videos for community posts.</string>
 </dict>
 </plist>
