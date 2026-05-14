@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; 
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unwaver/screens/habits/exercise/exercise_screen.dart';
 
@@ -53,6 +52,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
 
   final List<String> _levels = ['Low', 'Medium', 'High', 'Critical'];
 
+  // Expanded icon and color library
   final List<Color> _brandColors = [
     Colors.teal,
     Colors.black,
@@ -62,6 +62,13 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
     Colors.redAccent,
     Colors.orange,
     Colors.green,
+    Colors.pink,
+    Colors.brown,
+    Colors.cyan,
+    Colors.lime,
+    Colors.indigo,
+    Colors.amber,
+    Colors.grey,
   ];
 
   final List<IconData> _habitIcons = [
@@ -70,6 +77,15 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
     Icons.water_drop_rounded, Icons.attach_money_rounded, Icons.bolt_rounded,
     Icons.bed_rounded, Icons.edit_note_rounded, Icons.palette_rounded,
     Icons.computer_rounded, Icons.spa_rounded, Icons.monitor_heart_rounded,
+    Icons.music_note_rounded, Icons.movie_rounded, Icons.travel_explore_rounded,
+    Icons.coffee_rounded, Icons.fastfood_rounded, Icons.local_florist_rounded,
+    Icons.pets_rounded, Icons.shopping_cart_rounded, Icons.work_rounded,
+    Icons.school_rounded, Icons.language_rounded, Icons.lightbulb_rounded,
+    Icons.sports_soccer_rounded, Icons.sports_basketball_rounded, Icons.sports_tennis_rounded,
+    Icons.sports_esports_rounded, Icons.camera_alt_rounded, Icons.brush_rounded,
+    Icons.build_rounded, Icons.car_rental_rounded, Icons.flight_rounded,
+    Icons.train_rounded, Icons.directions_bike_rounded, Icons.hiking_rounded,
+    Icons.kayaking_rounded, Icons.surfing_rounded, Icons.pool_rounded,
   ];
 
   @override
@@ -212,10 +228,6 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
         // Await the creation so we can get the document ID for the workout subcollection
         final docRef = await FirebaseFirestore.instance.collection('habits').add(newHabit);
 
-        if (kDebugMode) {
-          print("Habit Created: ${docRef.id}");
-        }
-        
         if (!mounted) return;
 
         if (recordWorkoutNext) {
@@ -235,7 +247,9 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
         }
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving habit: $e')),
+        );
       } finally {
         if (mounted) setState(() => _isSaving = false);
       }

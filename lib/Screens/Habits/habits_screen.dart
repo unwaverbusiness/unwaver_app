@@ -420,7 +420,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         itemBuilder: (context, index) {
                           final doc = filteredDocs[index];
                           final data = doc.data() as Map<String, dynamic>;
-
                           // Core
                           final String title = data['title'] ?? 'Untitled';
                           final int streak = data['streak'] ?? 0;

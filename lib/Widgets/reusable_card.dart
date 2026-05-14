@@ -7,24 +7,24 @@ enum CardStatus { none, completed, skipped, failed }
 
 class ReusableCard extends StatefulWidget {
   // Core Info
-  final String habitId; // <--- Added
+  final String habitId;
   final String title;
   final String? description;
   final IconData icon; 
   final Color? color; 
 
-  // Metadata (Streamlined)
-  final String? priority; // e.g., "High", "Critical"
+  // Metadata
+  final String? priority; 
   final String? urgency;  
   final String? importance; 
-  final String? pillar;   // e.g., "Health", "Business"
+  final String? pillar;   
   final List<String>? tags; 
   final DateTime? deadline;
 
   // Initial State
   final CardStatus initialStatus;
 
-  // Primary Action (Returns the new status back to the parent)
+  // Primary Action
   final ValueChanged<CardStatus>? onStatusChanged;
 
   // Secondary Tools
@@ -41,7 +41,7 @@ class ReusableCard extends StatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
-const ReusableCard({
+  const ReusableCard({
     super.key,
     required this.habitId, 
     required this.title,
@@ -93,11 +93,6 @@ class _ReusableCardState extends State<ReusableCard> {
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   // --- SINGLE TOGGLE LOGIC ---
   void _cycleStatus() {
     setState(() {
@@ -117,7 +112,6 @@ class _ReusableCardState extends State<ReusableCard> {
       }
     });
     
-    // Pass the new state back up to Firebase/Parent
     if (widget.onStatusChanged != null) {
       widget.onStatusChanged!(_status);
     }
@@ -125,21 +119,14 @@ class _ReusableCardState extends State<ReusableCard> {
 
   @override
   Widget build(BuildContext context) {
+    bool isResolved = _status != CardStatus.none;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     // Dynamic Theme Variables
     final activeAccentColor = widget.color ?? theme.colorScheme.primary;
     final cardBgColor = isDark ? Colors.grey.shade800 : Colors.white;
     final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade200;
-    
-    // Text dims out if the card is "done" (completed, skipped, or failed)
-    final isResolved = _status != CardStatus.none;
-    final primaryTextColor = isResolved 
-        ? (isDark ? Colors.grey.shade500 : Colors.grey.shade400)
-        : (theme.textTheme.bodyLarge?.color ?? (isDark ? Colors.white : Colors.black));
-    
-    final secondaryTextColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -149,43 +136,17 @@ class _ReusableCardState extends State<ReusableCard> {
         border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
+            color: widget.color?.withValues(alpha: 0.1) ?? Colors.black12,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
+      // --- ADDED COLUMN WRAPPER TO FIX LAYOUT CRASH ---
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // --- TOP ROW: PRIORITY, URGENCY, IMPORTANCE, PILLAR & TAGS ---
-          if (widget.priority != null || widget.urgency != null || widget.importance != null || widget.pillar != null || (widget.tags != null && widget.tags!.isNotEmpty))
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (widget.priority != null && widget.priority!.isNotEmpty) 
-                    _buildIndicator(_formatPriority(widget.priority!), _getPriorityColor(widget.priority!), isDark, cardBgColor, borderColor),
-                  
-                  if (widget.urgency != null && widget.urgency!.isNotEmpty) 
-                    _buildIndicator(_formatUrgency(widget.urgency!), _getPriorityColor(widget.urgency!), isDark, cardBgColor, borderColor),
-                  
-                  // ADDED: Importance UI Indicator
-                  if (widget.importance != null && widget.importance!.isNotEmpty) 
-                    _buildIndicator(widget.importance!, _getPriorityColor(widget.importance!), isDark, cardBgColor, borderColor),
-
-                  if (widget.pillar != null && widget.pillar!.isNotEmpty)
-                    _buildIndicator(widget.pillar!, activeAccentColor, isDark, cardBgColor, borderColor),
-                  
-                  if (widget.tags != null)
-                    ...widget.tags!.map((tag) => _buildWordBadge(tag, isDark ? Colors.grey.shade300 : Colors.grey.shade700, isDark)),
-                ],
-              ),
-            ),
-
-          // --- MIDDLE ROW: CORE INFO & THE CYCLER BUTTON ---
+          // --- TOP ROW: CORE INFO & THE CYCLER BUTTON ---
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -201,8 +162,8 @@ class _ReusableCardState extends State<ReusableCard> {
                   child: Icon(widget.icon, color: activeAccentColor, size: 28),
                 ),
                 const SizedBox(width: 16),
-
-                // Text Data
+                
+                // Text Data & Badges
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,7 +173,7 @@ class _ReusableCardState extends State<ReusableCard> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: primaryTextColor,
+                          color: isDark ? Colors.white : Colors.black87,
                           decoration: isResolved ? TextDecoration.lineThrough : null,
                           letterSpacing: -0.3,
                         ),
@@ -223,7 +184,7 @@ class _ReusableCardState extends State<ReusableCard> {
                           widget.description!,
                           style: TextStyle(
                             fontSize: 13, 
-                            color: secondaryTextColor, 
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, 
                             height: 1.4
                           ),
                           maxLines: 2,
@@ -243,14 +204,41 @@ class _ReusableCardState extends State<ReusableCard> {
                           ],
                         ),
                       ],
+                      // Priority & Urgency Badges
+                      if ((widget.priority != null && widget.priority!.isNotEmpty) || 
+                          (widget.urgency != null && widget.urgency!.isNotEmpty))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Row(
+                            children: [
+                              if (widget.priority != null && widget.priority!.isNotEmpty)
+                                _buildWordBadge(
+                                  _formatPriority(widget.priority!), 
+                                  _getPriorityColor(widget.priority!),
+                                  isDark, // Passed missing isDark parameter
+                                ),
+                              if (widget.priority != null && widget.priority!.isNotEmpty && 
+                                  widget.urgency != null && widget.urgency!.isNotEmpty)
+                                const SizedBox(width: 8),
+                              if (widget.urgency != null && widget.urgency!.isNotEmpty)
+                                _buildWordBadge(
+                                  _formatUrgency(widget.urgency!), 
+                                  isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                                  isDark, // Passed missing isDark parameter
+                                ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
-
                 const SizedBox(width: 12),
-                if (widget.isExercise)
+                
+                // Exercise Button (Only visible if marked as exercise)
+                if (widget.isExercise) ...[
                   _buildExerciseButton(isDark),
-                const SizedBox(width: 8),
+                  const SizedBox(width: 8),
+                ],
 
                 // THE SINGLE CYCLE BUTTON
                 _buildCycleButton(isDark),
@@ -274,10 +262,10 @@ class _ReusableCardState extends State<ReusableCard> {
               children: [
                 Row(
                   children: [
-                    _buildIconButton(Icons.calendar_month, 'Calendar', widget.onCalendarTap, color: primaryTextColor),
-                    _buildIconButton(Icons.bar_chart, 'Statistics', widget.onStatsTap, color: primaryTextColor),
-                    _buildIconButton(Icons.history, 'History', widget.onHistoryTap, color: primaryTextColor),
-                    _buildIconButton(Icons.label_outline, 'Tags', widget.onTagsTap, color: primaryTextColor),
+                    _buildIconButton(Icons.calendar_month, 'Calendar', widget.onCalendarTap, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
+                    _buildIconButton(Icons.bar_chart, 'Statistics', widget.onStatsTap, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
+                    _buildIconButton(Icons.history, 'History', widget.onHistoryTap, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
+                    _buildIconButton(Icons.label_outline, 'Tags', widget.onTagsTap, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
                   ],
                 ),
                 Row(
@@ -360,44 +348,18 @@ class _ReusableCardState extends State<ReusableCard> {
     );
   }
 
-  Widget _buildIndicator(String text, Color color, bool isDark, Color cardBgColor, Color borderColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900 : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            text.toUpperCase(),
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: isDark ? Colors.grey.shade300 : Colors.grey.shade800, letterSpacing: 0.5),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildExerciseButton(bool isDark) {
     return GestureDetector(
       onTap: () {
-Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => ExerciseScreen(
-      habitId: widget.habitId,
-      habitName: widget.title, 
-    ),
-  ),
-);  
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ExerciseScreen(
+              habitId: widget.habitId,
+              habitName: widget.title, 
+            ),
+          ),
+        );  
       },
       child: Container(
         width: 42,
@@ -405,12 +367,14 @@ Navigator.push(
         decoration: BoxDecoration(
           color: isDark ? Colors.white10 : Colors.black12,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.black12),
+          border: Border.all(color: isDark ? Colors.white24 : Colors.black12),
         ),
         alignment: Alignment.center,
-        child: Icon(Icons.fitness_center,
-            color: widget.color ?? Theme.of(context).colorScheme.primary,
-            size: 20),
+        child: Icon(
+          Icons.fitness_center,
+          color: widget.color ?? Theme.of(context).colorScheme.primary,
+          size: 20,
+        ),
       ),
     );
   }

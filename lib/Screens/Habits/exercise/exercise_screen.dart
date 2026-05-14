@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 
 // --- Data Models for Dynamic State ---
 class SetEntry {
@@ -51,10 +50,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   // The dynamic list holding all exercises for this specific session
   final List<ExerciseEntry> _exercises = [ExerciseEntry()];
+  
+  // Local history for immediate UI updates if needed
+  final List<Map<String, dynamic>> _workoutHistory = [];
 
   @override
   void dispose() {
-    // Prevent memory leaks from dynamically generated controllers
+    // CRITICAL: Prevent memory leaks from dynamically generated controllers
     for (var exercise in _exercises) {
       exercise.dispose();
     }
@@ -88,7 +90,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     });
   }
 
-  // --- Firebase Sync Logic ---
+  // --- Save Workout with Timestamp ---
   Future<void> _saveWorkout() async {
     if (!_formKey.currentState!.validate()) return;
     if (_exercises.isEmpty) {
@@ -102,43 +104,33 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     FocusScope.of(context).unfocus();
 
     try {
-      // 1. Serialize our dynamic objects into Firestore-friendly Maps
-      List<Map<String, dynamic>> serializedExercises = _exercises.map((ex) {
-        return {
-          'name': ex.nameCtrl.text.trim(),
-          'sets': ex.sets.map((set) {
-            return {
-              'reps': int.tryParse(set.repsCtrl.text.trim()) ?? 0,
-              'weight': double.tryParse(set.weightCtrl.text.trim()) ?? 0.0,
-            };
-          }).toList(),
-        };
-      }).toList();
-
-      // 2. Prepare the workout document
+      final now = DateTime.now();
       final workoutData = {
         'category': _selectedCategory,
-        'exercises': serializedExercises,
-        'date': FieldValue.serverTimestamp(), // Exact server time of log
-        // Optional: Calculate total volume or sets here for quick querying later
-        'totalExercises': _exercises.length,
+        'exercises': _exercises.map((ex) => {
+          'name': ex.nameCtrl.text.trim(),
+          'sets': ex.sets.map((set) => {
+            'reps': int.tryParse(set.repsCtrl.text.trim()) ?? 0,
+            'weight': double.tryParse(set.weightCtrl.text.trim()) ?? 0.0,
+          }).toList(),
+        }).toList(),
+        'timestamp': now,
       };
 
-      // 3. Save to a subcollection tied directly to the parent Habit
+      // Save to Firestore
       await FirebaseFirestore.instance
           .collection('habits')
           .doc(widget.habitId)
           .collection('workouts')
           .add(workoutData);
 
-      if (kDebugMode) {
-        print("Workout logged successfully to habit: ${widget.habitId}");
-      }
+      // Add to local history
+      setState(() => _workoutHistory.add(workoutData));
 
-if (!mounted) return;
+      if (!mounted) return;
       Navigator.pop(context); // Pop back to Habits screen
       
-      // SUCCESS MESSAGE (No 'e' here)
+      // SUCCESS MESSAGE
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Workout Logged!'), 
@@ -149,7 +141,7 @@ if (!mounted) return;
     } catch (e) {
       if (!mounted) return;
       
-      // ERROR MESSAGE (Uses 'e', and removed the 'const' from Text)
+      // ERROR MESSAGE
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error saving workout: $e'), 
@@ -167,7 +159,6 @@ if (!mounted) return;
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        // automaticallyImplyLeading: true is default, which gives the back arrow!
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -296,7 +287,7 @@ if (!mounted) return;
                             ],
                           ),
                         );
-                      }), // Remove .toList() since we are using the spread operator (...)
+                      }), 
 
                       const SizedBox(height: 8),
                       // Add Set Button
@@ -309,7 +300,7 @@ if (!mounted) return;
                   ),
                 ),
               );
-            }), // Removed .toList() due to spread operator
+            }), 
 
             // --- Add Exercise Button ---
             OutlinedButton.icon(
