@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:unwaver/screens/login/register_screen.dart';
 import 'package:unwaver/screens/layout/main_layout.dart';
 
@@ -72,7 +74,48 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // --- SOCIAL SIGN IN LOGIC (Placeholders) ---
+  // --- SOCIAL SIGN IN LOGIC ---
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      // Note: For Web, a clientId is required. Replace this placeholder with your actual Web Client ID from Google Cloud Console.
+      final GoogleSignInAccount? googleUser = await GoogleSignIn(
+        clientId: '106790302196-d1b0mptk887omdj218hu12ml2qduteb0.apps.googleusercontent.com',
+      ).signIn();
+
+      if (googleUser == null) {
+        // User canceled the sign-in flow
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const MainLayout()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Google sign in failed: $e"),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   void _handleSocialSignIn(String provider) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -231,20 +274,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildSocialButton(
-                        icon: Icons.g_mobiledata_rounded, 
+                      _buildFaSocialButton(
+                        icon: FontAwesomeIcons.google, 
                         color: Colors.red, 
-                        onTap: () => _handleSocialSignIn("Google"),
+                        onTap: _handleGoogleSignIn,
                       ),
                       const SizedBox(width: 20),
-                      _buildSocialButton(
-                        icon: Icons.apple, 
+                      _buildFaSocialButton(
+                        icon: FontAwesomeIcons.apple, 
                         color: Colors.black, 
                         onTap: () => _handleSocialSignIn("Apple"),
                       ),
                       const SizedBox(width: 20),
-                      _buildSocialButton(
-                        icon: Icons.facebook, 
+                      _buildFaSocialButton(
+                        icon: FontAwesomeIcons.facebookF, 
                         color: Colors.blue.shade800, 
                         onTap: () => _handleSocialSignIn("Facebook"),
                       ),
@@ -285,7 +328,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // --- HELPER: Social Button Builder ---
-  Widget _buildSocialButton({required IconData icon, required Color color, required VoidCallback onTap}) {
+  Widget _buildFaSocialButton({required dynamic icon, required Color color, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -297,7 +340,9 @@ class _LoginScreenState extends State<LoginScreen> {
           border: Border.all(color: Colors.grey.shade200),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(icon, color: color, size: 32),
+        child: Center(
+          child: FaIcon(icon, color: color, size: 24),
+        ),
       ),
     );
   }

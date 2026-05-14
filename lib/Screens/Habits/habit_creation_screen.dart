@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:unwaver/services/app_data_service.dart';
 import 'package:unwaver/screens/habits/exercise/exercise_screen.dart';
 
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -41,15 +43,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
   // --- Dropdown Options ---
   final List<String> _habitTypes = ['Habits to Build', 'Habits to Break'];
   
-  final List<String> _pillars = [
-    'Faith',
-    'Health',
-    'Relationships',
-    'Optimization',
-    'Education',
-    'Work',
-    'Creativity'
-  ];
+  final List<Tag> _selectedTags = [];
 
   final List<String> _levels = ['Low', 'Medium', 'High', 'Critical'];
 
@@ -160,6 +154,64 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
     );
   }
 
+  void _showTagPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final activeTags = context.read<AppDataService>().activeTags;
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Select Tags", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  if (activeTags.isEmpty)
+                    const Text("No tags available. Create some in the Tags menu!")
+                  else
+                    Wrap(
+                      spacing: 8,
+                      children: activeTags.map((tag) {
+                        final isSelected = _selectedTags.any((t) => t.id == tag.id);
+                        return FilterChip(
+                          label: Text(tag.name),
+                          selected: isSelected,
+                          selectedColor: tag.color.withValues(alpha: 0.3),
+                          checkmarkColor: tag.color,
+                          onSelected: (val) {
+                            setState(() {
+                              if (val) {
+                                _selectedTags.add(tag);
+                              } else {
+                                _selectedTags.removeWhere((t) => t.id == tag.id);
+                              }
+                            });
+                            setModalState(() {});
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+                      child: const Text("Done"),
+                    ),
+                  )
+                ],
+              ),
+            );
+          }
+        );
+      }
+    );
+  }
+
   // --- SMART SAVE LOGIC (Handles Both Flows) ---
   Future<void> _saveHabit({bool recordWorkoutNext = false}) async {
     if (_formKey.currentState!.validate() && !_isSaving) {
@@ -170,11 +222,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
         'title': _nameController.text.trim(),
         'type': _habitType,
         'category': _categoryController.text.trim(),
-        'tags': _tagsController.text
-            .split(',')
-            .map((tag) => tag.trim())
-            .where((tag) => tag.isNotEmpty)
-            .toList(),
+        'tags': _selectedTags.map((t) => t.name).toList(), // Saving names for backward compat in Firestore
         'pillar': _selectedPillar,
         'priority': _priority,
         'urgency': _urgency,
@@ -314,19 +362,63 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             const SizedBox(height: 20),
 
             _buildLabel("Life Pillar"),
-            _buildDropdown(_pillars, _selectedPillar, (val) => setState(() => _selectedPillar = val!)),
+            Consumer<AppDataService>(
+              builder: (context, dataService, _) {
+                final pillars = dataService.pillars.map((p) => p.name).toList();
+                if (pillars.isEmpty) return const Text("No pillars available.");
+                if (!pillars.contains(_selectedPillar)) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    setState(() => _selectedPillar = pillars.first);
+                  });
+                }
+                return _buildDropdown(pillars, _selectedPillar, (val) => setState(() => _selectedPillar = val!));
+              }
+            ),
             const SizedBox(height: 20),
 
             _buildLabel("Category (Sub-pillar)"),
-            TextFormField(
-              controller: _categoryController,
-              decoration: _inputDecoration("e.g. Cardio"),
+            Consumer<AppDataService>(
+              builder: (context, dataService, _) {
+                final currentPillar = dataService.pillars.where((p) => p.name == _selectedPillar).firstOrNull;
+                final subs = currentPillar?.subPillars ?? [];
+                
+                if (subs.isEmpty) {
+                  return TextFormField(
+                    controller: _categoryController,
+                    decoration: _inputDecoration("e.g. Cardio"),
+                  );
+                } else {
+                  if (_categoryController.text.isEmpty || !subs.contains(_categoryController.text)) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      setState(() => _categoryController.text = subs.first);
+                    });
+                  }
+                  return _buildDropdown(subs, _categoryController.text, (val) => setState(() => _categoryController.text = val!));
+                }
+              }
             ),
             const SizedBox(height: 16),
             _buildLabel("Tags"),
-            TextFormField(
-              controller: _tagsController,
-              decoration: _inputDecoration("Comma-separated tags, e.g. Exercise, Strength"),
+            InkWell(
+              onTap: _showTagPicker,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  children: _selectedTags.isEmpty
+                      ? [Text("Select tags...", style: TextStyle(color: Colors.grey.shade400))]
+                      : _selectedTags.map((tag) => Chip(
+                            label: Text(tag.name, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                            backgroundColor: tag.color,
+                            onDeleted: () => setState(() => _selectedTags.removeWhere((t) => t.id == tag.id)),
+                          )).toList(),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
 

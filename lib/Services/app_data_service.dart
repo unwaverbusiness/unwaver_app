@@ -1,6 +1,50 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 // === MODELS ===
+
+class Tag {
+  final String id;
+  String name;
+  Color color;
+  bool isArchived;
+
+  Tag({
+    required this.id,
+    required this.name,
+    required this.color,
+    this.isArchived = false,
+  });
+
+  Tag copyWith({String? name, Color? color, bool? isArchived}) {
+    return Tag(
+      id: id,
+      name: name ?? this.name,
+      color: color ?? this.color,
+      isArchived: isArchived ?? this.isArchived,
+    );
+  }
+}
+
+class Pillar {
+  final String id;
+  String name;
+  List<String> subPillars;
+
+  Pillar({
+    required this.id,
+    required this.name,
+    List<String>? subPillars,
+  }) : subPillars = subPillars ?? [];
+
+  Pillar copyWith({String? name, List<String>? subPillars}) {
+    return Pillar(
+      id: id,
+      name: name ?? this.name,
+      subPillars: subPillars ?? this.subPillars,
+    );
+  }
+}
+
 
 class Goal {
   final String id;
@@ -125,11 +169,68 @@ class AppDataService extends ChangeNotifier {
   final List<Goal> _goals = [];
   final List<Habit> _habits = [];
   final List<Task> _tasks = [];
+  
+  final List<Tag> _tags = [
+    Tag(id: 't1', name: 'High Priority', color: Colors.red),
+    Tag(id: 't2', name: 'Deep Work', color: Colors.purple),
+    Tag(id: 't3', name: 'Errand', color: Colors.blueGrey),
+  ];
+  
+  final List<Pillar> _pillars = [
+    Pillar(id: 'p1', name: 'Faith', subPillars: ['Prayer', 'Meditation']),
+    Pillar(id: 'p2', name: 'Health', subPillars: ['Fitness', 'Diet']),
+    Pillar(id: 'p3', name: 'Relationships', subPillars: ['Family', 'Friends']),
+    Pillar(id: 'p4', name: 'Optimization', subPillars: ['Finance', 'Home']),
+    Pillar(id: 'p5', name: 'Education', subPillars: ['Reading', 'Courses']),
+    Pillar(id: 'p6', name: 'Work', subPillars: ['Career', 'Side Hustle']),
+    Pillar(id: 'p7', name: 'Creativity', subPillars: ['Art', 'Music']),
+  ];
 
   // Getters
   List<Goal> get goals => List.unmodifiable(_goals);
   List<Habit> get habits => List.unmodifiable(_habits);
   List<Task> get tasks => List.unmodifiable(_tasks);
+  List<Tag> get tags => List.unmodifiable(_tags);
+  List<Tag> get activeTags => _tags.where((t) => !t.isArchived).toList();
+  List<Pillar> get pillars => List.unmodifiable(_pillars);
+
+  // === TAG METHODS ===
+  void addTag(Tag tag) {
+    _tags.add(tag);
+    notifyListeners();
+  }
+
+  void updateTag(Tag tag) {
+    final index = _tags.indexWhere((t) => t.id == tag.id);
+    if (index != -1) {
+      _tags[index] = tag;
+      notifyListeners();
+    }
+  }
+
+  void deleteTag(String id) {
+    _tags.removeWhere((t) => t.id == id);
+    notifyListeners();
+  }
+
+  // === PILLAR METHODS ===
+  void addPillar(Pillar pillar) {
+    _pillars.add(pillar);
+    notifyListeners();
+  }
+
+  void updatePillar(Pillar pillar) {
+    final index = _pillars.indexWhere((p) => p.id == pillar.id);
+    if (index != -1) {
+      _pillars[index] = pillar;
+      notifyListeners();
+    }
+  }
+
+  void deletePillar(String id) {
+    _pillars.removeWhere((p) => p.id == id);
+    notifyListeners();
+  }
 
   // === GOAL METHODS ===
   

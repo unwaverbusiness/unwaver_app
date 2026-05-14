@@ -9,7 +9,6 @@ import 'package:unwaver/screens/settings/theme/theme_manager.dart';
 
 import 'services/firebase_options.dart';
 import 'services/app_data_service.dart';
-import 'screens/onboarding/onboarding_screen.dart';
 
 // Ensure these exist or create placeholders for them
 import 'screens/login/register_screen.dart';
@@ -140,10 +139,6 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!seenOnboarding) {
-      return const OnboardingScreen();
-    }
-
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {

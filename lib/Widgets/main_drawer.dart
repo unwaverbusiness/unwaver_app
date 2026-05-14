@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:unwaver/screens/settings/settings_screen.dart';
 import 'package:unwaver/screens/stats/statistics_screen.dart';
 import 'package:unwaver/screens/life_resume/life_resume_screen.dart';
-import 'package:unwaver/screens/community/community_screen.dart'; // Ensure this path matches your project structure
+import 'package:unwaver/screens/community/community_screen.dart';
+import 'package:unwaver/screens/settings/tags_pillars_screen.dart';
 
 class MainDrawer extends StatelessWidget {
   final String currentRoute;
@@ -84,10 +85,19 @@ class MainDrawer extends StatelessWidget {
                             builder: (context) => StatisticsScreen()));
                   },
                 ),
-                _buildDrawerItem(context,
-                    icon: Icons.label_outline_rounded,
-                    text: 'Tags',
-                    route: '/tags'),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.label_outline_rounded,
+                  text: 'Tags & Pillars',
+                  route: '/tags',
+                  onTapOverride: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const TagsPillarsScreen()));
+                  },
+                ),
                 _buildDrawerItem(
                   context,
                   icon: Icons.badge_outlined,

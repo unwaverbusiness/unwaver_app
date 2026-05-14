@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import '../today/today_screen.dart';
 import '../Goals/goal_overview_screen.dart';
 import '../Habits/habits_screen.dart';
 import '../purpose/purpose_generator_screen.dart';
-import '../Tasks/tasks_screen.dart';
 import '../Schedule/schedule_screen.dart';
 
 class MainLayout extends StatefulWidget {
@@ -10,7 +10,7 @@ class MainLayout extends StatefulWidget {
 
   const MainLayout({
     super.key, 
-    this.initialIndex = 0 
+    this.initialIndex = 2 
   });
 
   @override
@@ -27,10 +27,10 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   final List<Widget> _screens = [
+    const TodayScreen(),
     const GoalOverviewScreen(),
     const HabitsScreen(),
     const PurposeGeneratorScreen(),
-    const TasksScreen(),
     const ScheduleScreen(),
   ];
 
@@ -53,6 +53,11 @@ class _MainLayoutState extends State<MainLayout> {
         onDestinationSelected: _onItemTapped,
         destinations: const <NavigationDestination>[
           NavigationDestination(
+            icon: Icon(Icons.wb_sunny_outlined),
+            selectedIcon: Icon(Icons.wb_sunny),
+            label: 'Today',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.track_changes_outlined),
             selectedIcon: Icon(Icons.track_changes),
             label: 'Goals',
@@ -63,13 +68,8 @@ class _MainLayoutState extends State<MainLayout> {
             label: 'Habits',
           ),
           NavigationDestination(
-            icon: PurposeNavIcon(size: 60), 
+            icon: PurposeNavIcon(), 
             label: 'Purpose',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.check_box_outlined),
-            selectedIcon: Icon(Icons.check_box),
-            label: 'Tasks',
           ),
           NavigationDestination(
             icon: Icon(Icons.calendar_today_outlined),
@@ -83,11 +83,13 @@ class _MainLayoutState extends State<MainLayout> {
 }
 
 class PurposeNavIcon extends StatelessWidget {
-  final double size;
+  final double visualSize;
+  final double layoutSize;
 
   const PurposeNavIcon({
     super.key, 
-    this.size = 24.0, 
+    this.visualSize = 50.0, 
+    this.layoutSize = 24.0,
   });
 
   @override
@@ -97,12 +99,16 @@ class PurposeNavIcon extends StatelessWidget {
     final iconColor = isDark ? Colors.black : Colors.white;
 
     return SizedBox(
-      height: size,
-      width: size,
-      child: Image.asset(
-        'assets/PurposeButton.png',
-        fit: BoxFit.contain,
-        color: iconColor, 
+      height: layoutSize,
+      width: layoutSize,
+      child: OverflowBox(
+        maxHeight: visualSize,
+        maxWidth: visualSize,
+        child: Image.asset(
+          'assets/PurposeButton.png',
+          fit: BoxFit.contain,
+          color: iconColor, 
+        ),
       ),
     );
   }

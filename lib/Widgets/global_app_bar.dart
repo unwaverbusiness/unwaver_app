@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:unwaver/screens/profile/profile_screen.dart';
 
 class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isSearching;
@@ -73,12 +75,45 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
                 icon: const Icon(Icons.filter_list),
                 onPressed: onFilterTap,
               ),
-                IconButton(
-                icon: const Icon(Icons.more_vert),
-                onPressed: onSortTap,
-                ),
-            
-              const SizedBox(width: 8), // A little breathing room on the edge
+              StreamBuilder<User?>(
+                initialData: FirebaseAuth.instance.currentUser,
+                stream: FirebaseAuth.instance.userChanges(),
+                builder: (context, snapshot) {
+                  final user = snapshot.data;
+
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.more_vert),
+                        onPressed: onSortTap,
+                      ),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                          );
+                        },
+                        child: Container(
+                          height: kToolbarHeight,
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.only(right: 16.0, left: 4.0),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Colors.grey.shade200,
+                            backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
+                            child: user?.photoURL == null
+                                ? Icon(Icons.person, size: 22, color: Colors.grey.shade600)
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ],
     );
   }

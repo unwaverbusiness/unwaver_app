@@ -50,6 +50,7 @@ dependencies:
   # --- Security & Extras ---
   local_auth: ^2.1.0
   flutter_colorpicker: ^1.1.0
+  font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
   flutter_test:
