@@ -5,6 +5,9 @@ import 'package:unwaver/widgets/main_drawer.dart';
 import 'package:unwaver/widgets/global_app_bar.dart';
 import 'package:unwaver/widgets/reusable_card.dart';
 import 'habit_creation_screen.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'habit_constants.dart';
+import 'package:share_plus/share_plus.dart';
 
 class HabitsScreen extends StatefulWidget {
   const HabitsScreen({super.key});
@@ -446,6 +449,17 @@ class _HabitsScreenState extends State<HabitsScreen> {
                             }
                           }
 
+                          final int? iconCode = data['iconCodePoint'];
+                          final String? iconFamily = data['iconFontFamily'];
+                          final int? colorValue = data['colorValue'];
+
+                          final IconData habitIcon = iconCode != null
+                              ? IconData(iconCode, fontFamily: iconFamily)
+                              : Icons.fitness_center;
+                          final Color habitColor = colorValue != null
+                              ? Color(colorValue)
+                              : Colors.black87;
+
                           return GestureDetector(
                             // Tapping the card body opens the edit dialog
                             onTap: () => _showEditHabitDialog(doc),
@@ -453,8 +467,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
                               habitId: doc.id,
                               title: title,
                               description: "$streak Day Streak",
-                              icon: Icons.fitness_center,
-                              color: Colors.black87,
+                              icon: habitIcon,
+                              color: habitColor,
                               isExercise: isExercise,
                               onWorkoutSaved: isExercise
                                   ? (workoutData) async {
@@ -470,6 +484,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                   : null,
 
                               // Pass Metadata dynamically
+                              type: data['type'],
                               pillar: data['pillar'],
                               tags: tags.isNotEmpty ? tags : null,
                               urgency: data['urgency'],
@@ -493,6 +508,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
                               onTagsTap: () => _navToHabitDetail(title, 'Tags'),
 
                               // Management Actions
+                              onShareTap: () {
+                                Share.share('Join me on Unwaver and let\'s collaborate on my habit: $title! 🚀');
+                              },
                               onEdit: () => _showEditHabitDialog(doc),
                               onDelete: () => _deleteHabit(doc.id),
                             ),
@@ -570,6 +588,8 @@ class _EditHabitScreenState extends State<_EditHabitScreen> {
   late String urgency;
   late bool isExercise;
   bool _isSaving = false;
+  late IconData _selectedIcon;
+  late Color _selectedColor;
 
   final List<String> _habitTypes = ['Habits to Build', 'Habits to Break'];
   final List<String> _pillars = ['Faith', 'Health', 'Relationships', 'Optimization', 'Education', 'Work', 'Creativity'];
@@ -593,6 +613,13 @@ class _EditHabitScreenState extends State<_EditHabitScreen> {
     priority = widget.data['priority'] ?? 'Medium';
     urgency = widget.data['urgency'] ?? 'Medium';
     isExercise = widget.data['isExercise'] == true;
+
+    final int? iconCode = widget.data['iconCodePoint'];
+    final String? iconFamily = widget.data['iconFontFamily'];
+    final int? colorValue = widget.data['colorValue'];
+
+    _selectedIcon = iconCode != null ? IconData(iconCode, fontFamily: iconFamily) : Icons.fitness_center;
+    _selectedColor = colorValue != null ? Color(colorValue) : Colors.black87;
   }
 
   @override
@@ -626,7 +653,8 @@ class _EditHabitScreenState extends State<_EditHabitScreen> {
           .where((tag) => tag.isNotEmpty)
           .toList();
 
-      await widget.habitsCollection.doc(widget.doc.id).update({
+      // Fire and forget update
+      widget.habitsCollection.doc(widget.doc.id).update({
         'title': titleCtrl.text.trim(),
         'category': categoryCtrl.text.trim(),
         'tags': updatedTags,
@@ -636,6 +664,9 @@ class _EditHabitScreenState extends State<_EditHabitScreen> {
         'priority': priority,
         'urgency': urgency,
         'description': descriptionCtrl.text.trim(),
+        'iconCodePoint': _selectedIcon.codePoint,
+        'iconFontFamily': _selectedIcon.fontFamily,
+        'colorValue': _selectedColor.toARGB32(),
         'lastUpdated': FieldValue.serverTimestamp(),
       });
 
@@ -648,6 +679,67 @@ class _EditHabitScreenState extends State<_EditHabitScreen> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  void _showIconPicker() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select an Icon', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: GridView.builder(
+            shrinkWrap: true,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 5,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
+            itemCount: kHabitIcons.length,
+            itemBuilder: (context, index) {
+              return IconButton(
+                icon: Icon(kHabitIcons[index], size: 30, color: Colors.black87),
+                onPressed: () {
+                  setState(() => _selectedIcon = kHabitIcons[index]);
+                  Navigator.pop(context);
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showColorPicker() {
+    Color tempColor = _selectedColor;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select a Color', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: HueRingPicker(
+            pickerColor: tempColor,
+            onColorChanged: (color) {
+              tempColor = color;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          ElevatedButton(
+            child: const Text('Select'),
+            onPressed: () {
+              setState(() => _selectedColor = tempColor);
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -672,6 +764,48 @@ class _EditHabitScreenState extends State<_EditHabitScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // Visual Identity
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _showIconPicker,
+                child: Container(
+                  height: 60,
+                  width: 60,
+                  decoration: BoxDecoration(
+                    color: _selectedColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _selectedColor),
+                  ),
+                  child: Icon(_selectedIcon, color: _selectedColor, size: 32),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Visual Identity", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: _showColorPicker,
+                          icon: const Icon(Icons.palette, size: 16, color: Colors.black87),
+                          label: const Text("Set Color", style: TextStyle(color: Colors.black87)),
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 24),
+
           // 1. Name
           _buildLabel("Habit Name"),
           TextField(
@@ -703,20 +837,22 @@ class _EditHabitScreenState extends State<_EditHabitScreen> {
             decoration: _inputDecoration("Comma-separated tags, e.g. Exercise, Strength"),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text("Mark as Exercise Habit",
-                    style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
-              ),
-              Switch(
-                value: isExercise,
-                activeThumbColor: Colors.black,
-                onChanged: (value) => setState(() => isExercise = value),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
+          if (selectedPillar == 'Health')
+            Row(
+              children: [
+                Expanded(
+                  child: Text("Track Workouts",
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+                ),
+                Switch(
+                  value: isExercise,
+                  activeThumbColor: Colors.black,
+                  onChanged: (value) => setState(() => isExercise = value),
+                ),
+              ],
+            ),
+          if (selectedPillar == 'Health')
+            const SizedBox(height: 20),
 
           // 5. Priority & Urgency Row
           Row(

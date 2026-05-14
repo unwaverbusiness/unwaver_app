@@ -20,6 +20,7 @@ class ReusableCard extends StatefulWidget {
   final String? pillar;   
   final List<String>? tags; 
   final DateTime? deadline;
+  final String? type;
 
   // Initial State
   final CardStatus initialStatus;
@@ -37,9 +38,9 @@ class ReusableCard extends StatefulWidget {
   final bool isExercise;
   final ValueChanged<Map<String, dynamic>>? onWorkoutSaved;
 
-  // Management
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onShareTap;
 
   const ReusableCard({
     super.key,
@@ -56,6 +57,7 @@ class ReusableCard extends StatefulWidget {
     this.pillar,          
     this.tags,
     this.deadline,
+    this.type,
 
     // Status
     this.initialStatus = CardStatus.none,
@@ -70,6 +72,7 @@ class ReusableCard extends StatefulWidget {
     this.onWorkoutSaved,
     this.onEdit,
     this.onDelete,
+    this.onShareTap,
   });
 
   @override
@@ -226,6 +229,16 @@ class _ReusableCardState extends State<ReusableCard> {
                                   isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                                   isDark, // Passed missing isDark parameter
                                 ),
+                              if (widget.type != null && widget.type!.isNotEmpty) ...[
+                                if ((widget.priority != null && widget.priority!.isNotEmpty) || 
+                                    (widget.urgency != null && widget.urgency!.isNotEmpty))
+                                  const SizedBox(width: 8),
+                                _buildWordBadge(
+                                  widget.type!.contains('Build') ? 'BUILD' : 'BREAK',
+                                  widget.type!.contains('Build') ? Colors.green.shade600 : Colors.red.shade600,
+                                  isDark,
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -270,6 +283,7 @@ class _ReusableCardState extends State<ReusableCard> {
                 ),
                 Row(
                   children: [
+                    _buildIconButton(Icons.share_outlined, 'Share', widget.onShareTap, color: isDark ? Colors.purple.shade300 : Colors.purple),
                     _buildIconButton(Icons.edit_outlined, 'Edit', widget.onEdit, color: isDark ? Colors.blue.shade300 : Colors.blue),
                     _buildIconButton(Icons.delete_outline, 'Delete', widget.onDelete, color: isDark ? Colors.red.shade300 : Colors.red),
                   ],

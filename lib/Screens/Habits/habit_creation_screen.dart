@@ -3,7 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unwaver/screens/habits/exercise/exercise_screen.dart';
 
-// Import your workout tracking screen here
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'habit_constants.dart';
 // import 'workout_tracking_screen.dart'; 
 
 class HabitCreationScreen extends StatefulWidget {
@@ -52,41 +53,8 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
 
   final List<String> _levels = ['Low', 'Medium', 'High', 'Critical'];
 
-  // Expanded icon and color library
-  final List<Color> _brandColors = [
-    Colors.teal,
-    Colors.black,
-    const Color.fromARGB(255, 187, 142, 19), // Signature Gold
-    Colors.blueAccent,
-    Colors.deepPurple,
-    Colors.redAccent,
-    Colors.orange,
-    Colors.green,
-    Colors.pink,
-    Colors.brown,
-    Colors.cyan,
-    Colors.lime,
-    Colors.indigo,
-    Colors.amber,
-    Colors.grey,
-  ];
+  // Expanded icon and color library removed, using habit_constants instead
 
-  final List<IconData> _habitIcons = [
-    Icons.star_rounded, Icons.favorite_rounded, Icons.fitness_center_rounded,
-    Icons.directions_run_rounded, Icons.book_rounded, Icons.self_improvement_rounded,
-    Icons.water_drop_rounded, Icons.attach_money_rounded, Icons.bolt_rounded,
-    Icons.bed_rounded, Icons.edit_note_rounded, Icons.palette_rounded,
-    Icons.computer_rounded, Icons.spa_rounded, Icons.monitor_heart_rounded,
-    Icons.music_note_rounded, Icons.movie_rounded, Icons.travel_explore_rounded,
-    Icons.coffee_rounded, Icons.fastfood_rounded, Icons.local_florist_rounded,
-    Icons.pets_rounded, Icons.shopping_cart_rounded, Icons.work_rounded,
-    Icons.school_rounded, Icons.language_rounded, Icons.lightbulb_rounded,
-    Icons.sports_soccer_rounded, Icons.sports_basketball_rounded, Icons.sports_tennis_rounded,
-    Icons.sports_esports_rounded, Icons.camera_alt_rounded, Icons.brush_rounded,
-    Icons.build_rounded, Icons.car_rental_rounded, Icons.flight_rounded,
-    Icons.train_rounded, Icons.directions_bike_rounded, Icons.hiking_rounded,
-    Icons.kayaking_rounded, Icons.surfing_rounded, Icons.pool_rounded,
-  ];
 
   @override
   void dispose() {
@@ -145,12 +113,12 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
             ),
-            itemCount: _habitIcons.length,
+            itemCount: kHabitIcons.length,
             itemBuilder: (context, index) {
               return IconButton(
-                icon: Icon(_habitIcons[index], size: 30, color: Colors.black87),
+                icon: Icon(kHabitIcons[index], size: 30, color: Colors.black87),
                 onPressed: () {
-                  setState(() => _selectedIcon = _habitIcons[index]);
+                  setState(() => _selectedIcon = kHabitIcons[index]);
                   Navigator.pop(context);
                 },
               );
@@ -162,29 +130,32 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
   }
 
   void _showColorPicker() {
+    Color tempColor = _selectedColor;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Select a Color', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: _brandColors.map((color) {
-            return GestureDetector(
-              onTap: () {
-                setState(() => _selectedColor = color);
-                Navigator.pop(context);
-              },
-              child: CircleAvatar(
-                backgroundColor: color,
-                radius: 20,
-                child: _selectedColor == color 
-                    ? const Icon(Icons.check, color: Colors.white, size: 20) 
-                    : null,
-              ),
-            );
-          }).toList(),
+        content: SingleChildScrollView(
+          child: HueRingPicker(
+            pickerColor: tempColor,
+            onColorChanged: (color) {
+              tempColor = color;
+            },
+          ),
         ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          ElevatedButton(
+            child: const Text('Select'),
+            onPressed: () {
+              setState(() => _selectedColor = tempColor);
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -225,12 +196,10 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
       };
 
       try {
-        // Await the creation so we can get the document ID for the workout subcollection
-        final docRef = await FirebaseFirestore.instance.collection('habits').add(newHabit);
-
-        if (!mounted) return;
-
         if (recordWorkoutNext) {
+          final docRef = await FirebaseFirestore.instance.collection('habits').add(newHabit);
+          if (!mounted) return;
+          
           // PushReplacement ensures that clicking "Back" from the workout screen 
           // takes you to the dashboard, NOT back to an empty creation screen.
           Navigator.pushReplacement(
@@ -243,6 +212,9 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             ),
           );
         } else {
+          // Fire and forget the save so we don't hang on slow networks
+          FirebaseFirestore.instance.collection('habits').add(newHabit);
+          if (!mounted) return;
           Navigator.pop(context); // Standard save, go back to dashboard
         }
       } catch (e) {
@@ -333,7 +305,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             TextFormField(
               controller: _nameController,
               decoration: _inputDecoration("e.g. Morning Run"),
-              validator: (val) => val!.isEmpty ? "Please enter a name" : null,
+              validator: (val) => val == null || val.trim().isEmpty ? "Please enter a name" : null,
             ),
             const SizedBox(height: 20),
 
@@ -363,7 +335,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
               Row(
                 children: [
                   const Expanded(
-                    child: Text("Mark as Exercise Habit",
+                    child: Text("Track Workouts",
                         style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
                   ),
                   Switch(
