@@ -80,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // Note: For Web, a clientId is required. Replace this placeholder with your actual Web Client ID from Google Cloud Console.
       final GoogleSignInAccount? googleUser = await GoogleSignIn(
-        clientId: '106790302196-d1b0mptk887omdj218hu12ml2qduteb0.apps.googleusercontent.com',
+        clientId: '693008491248-hv2v2klc8lc8i06uc2ok0jb68r6iqr9g.apps.googleusercontent.com',
       ).signIn();
 
       if (googleUser == null) {
