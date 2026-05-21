@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String currentName;
@@ -19,11 +22,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _emailController;
   final _formKey = GlobalKey<FormState>();
 
+  final ImagePicker _picker = ImagePicker();
+  String? _photoUrl;
+  bool _isUploading = false;
+
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.currentName);
-    _emailController = TextEditingController(text: widget.currentEmail);
+    final user = FirebaseAuth.instance.currentUser;
+    _nameController = TextEditingController(text: user?.displayName ?? widget.currentName);
+    _emailController = TextEditingController(text: user?.email ?? widget.currentEmail);
+    _photoUrl = user?.photoURL;
   }
 
   @override
@@ -33,13 +42,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.updateDisplayName(_nameController.text.trim());
+        // Email update might require re-authentication, so we'll skip updating it in Auth for now, 
+        // or just return it to the caller.
+      }
+      
+      if (!mounted) return;
       // Pass the updated data back to the previous screen
       Navigator.pop(context, {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
       });
+    }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in first.')));
+      return;
+    }
+
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (image == null) return;
+
+      setState(() => _isUploading = true);
+
+      final storageRef = FirebaseStorage.instance.ref().child('users/${user.uid}/profile_pic.jpg');
+      
+      final bytes = await image.readAsBytes();
+      await storageRef.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+
+      final downloadUrl = await storageRef.getDownloadURL();
+      await user.updatePhotoURL(downloadUrl);
+      
+      setState(() {
+        _photoUrl = downloadUrl;
+        _isUploading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated!'), backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      setState(() => _isUploading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to upload image: $e'), backgroundColor: Colors.red));
+      }
     }
   }
 
@@ -74,18 +128,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.grey.shade200,
-                      child: const Icon(Icons.person, size: 50, color: Colors.grey),
+                      backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
+                      child: _photoUrl == null ? const Icon(Icons.person, size: 50, color: Colors.grey) : null,
                     ),
                     Container(
                       decoration: const BoxDecoration(
                         color: Colors.black,
                         shape: BoxShape.circle,
                       ),
-                      child: IconButton(
-                        icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
-                        onPressed: () {
-                        },
-                      ),
+                      child: _isUploading
+                        ? const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                            onPressed: _pickAndUploadImage,
+                          ),
                     ),
                   ],
                 ),

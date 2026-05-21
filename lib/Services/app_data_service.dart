@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
-// === MODELS ===
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';// === MODELS ===
 
 class Tag {
   final String id;
@@ -23,6 +23,24 @@ class Tag {
       isArchived: isArchived ?? this.isArchived,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'color': color.toARGB32(),
+      'isArchived': isArchived,
+    };
+  }
+
+  factory Tag.fromJson(Map<String, dynamic> json) {
+    return Tag(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      color: Color(json['color'] as int),
+      isArchived: json['isArchived'] as bool? ?? false,
+    );
+  }
 }
 
 class Pillar {
@@ -41,6 +59,22 @@ class Pillar {
       id: id,
       name: name ?? this.name,
       subPillars: subPillars ?? this.subPillars,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'subPillars': subPillars,
+    };
+  }
+
+  factory Pillar.fromJson(Map<String, dynamic> json) {
+    return Pillar(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      subPillars: List<String>.from(json['subPillars'] ?? []),
     );
   }
 }
@@ -198,6 +232,7 @@ class AppDataService extends ChangeNotifier {
   void addTag(Tag tag) {
     _tags.add(tag);
     notifyListeners();
+    syncToFirebase();
   }
 
   void updateTag(Tag tag) {
@@ -205,18 +240,21 @@ class AppDataService extends ChangeNotifier {
     if (index != -1) {
       _tags[index] = tag;
       notifyListeners();
+      syncToFirebase();
     }
   }
 
   void deleteTag(String id) {
     _tags.removeWhere((t) => t.id == id);
     notifyListeners();
+    syncToFirebase();
   }
 
   // === PILLAR METHODS ===
   void addPillar(Pillar pillar) {
     _pillars.add(pillar);
     notifyListeners();
+    syncToFirebase();
   }
 
   void updatePillar(Pillar pillar) {
@@ -224,12 +262,14 @@ class AppDataService extends ChangeNotifier {
     if (index != -1) {
       _pillars[index] = pillar;
       notifyListeners();
+      syncToFirebase();
     }
   }
 
   void deletePillar(String id) {
     _pillars.removeWhere((p) => p.id == id);
     notifyListeners();
+    syncToFirebase();
   }
 
   // === GOAL METHODS ===
@@ -385,5 +425,51 @@ class AppDataService extends ChangeNotifier {
     }
 
     return events;
+  }
+
+  // === FIREBASE SYNC ===
+  Future<void> syncToFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      await docRef.set({
+        'tags': _tags.map((t) => t.toJson()).toList(),
+        'pillars': _pillars.map((p) => p.toJson()).toList(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("Failed to sync app data: $e");
+    }
+  }
+
+  Future<void> loadFromFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final snapshot = await docRef.get();
+
+      if (snapshot.exists && snapshot.data() != null) {
+        final data = snapshot.data()!;
+        if (data.containsKey('tags')) {
+          final tagsList = data['tags'] as List;
+          _tags.clear();
+          _tags.addAll(tagsList.map((t) => Tag.fromJson(Map<String, dynamic>.from(t))));
+        }
+        if (data.containsKey('pillars')) {
+          final pillarsList = data['pillars'] as List;
+          _pillars.clear();
+          _pillars.addAll(pillarsList.map((p) => Pillar.fromJson(Map<String, dynamic>.from(p))));
+        }
+        notifyListeners();
+      } else {
+        // If no data exists, sync the defaults to Firebase
+        await syncToFirebase();
+      }
+    } catch (e) {
+      debugPrint("Failed to load app data: $e");
+    }
   }
 }

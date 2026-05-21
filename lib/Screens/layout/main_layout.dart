@@ -4,6 +4,8 @@ import '../Goals/goal_overview_screen.dart';
 import '../Habits/habits_screen.dart';
 import '../purpose/purpose_generator_screen.dart';
 import '../Schedule/schedule_screen.dart';
+import 'package:provider/provider.dart';
+import '../../services/app_data_service.dart';
 
 class MainLayout extends StatefulWidget {
   final int initialIndex;
@@ -24,6 +26,9 @@ class _MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AppDataService>(context, listen: false).loadFromFirebase();
+    });
   }
 
   final List<Widget> _screens = [

@@ -1,9 +1,13 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../../services/app_data_service.dart';
+import '../login/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,7 +22,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final User? _user = FirebaseAuth.instance.currentUser;
   
   bool _isLoading = false;
-  bool _isUploading = false;
+  bool _isUploadingProfile = false;
+  bool _isUploadingBanner = false;
+  String? _bannerUrl;
   
   final ImagePicker _picker = ImagePicker();
 
@@ -26,6 +32,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _displayNameController = TextEditingController(text: _user?.displayName ?? '');
+    _loadBanner();
+  }
+
+  Future<void> _loadBanner() async {
+    if (_user == null) return;
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(_user!.uid).get();
+      if (doc.exists && doc.data()!.containsKey('bannerUrl')) {
+        setState(() {
+          _bannerUrl = doc.data()!['bannerUrl'];
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to load banner: $e");
+    }
   }
 
   @override
@@ -34,29 +55,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _pickAndUploadImage() async {
+  Future<void> _pickAndUploadImage({required bool isBanner}) async {
     if (_user == null) return;
     
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
       if (image == null) return;
       
-      setState(() => _isUploading = true);
+      setState(() {
+        if (isBanner) _isUploadingBanner = true;
+        else _isUploadingProfile = true;
+      });
       
-      final File file = File(image.path);
-      final String path = 'profile_pictures/${_user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final String path = isBanner 
+          ? 'users/${_user.uid}/banner_pic.jpg'
+          : 'users/${_user.uid}/profile_pic.jpg';
+          
       final Reference storageRef = FirebaseStorage.instance.ref().child(path);
       
-      final UploadTask uploadTask = storageRef.putFile(file);
-      final TaskSnapshot snapshot = await uploadTask;
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
+      final bytes = await image.readAsBytes();
+      await storageRef.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
       
-      await _user.updatePhotoURL(downloadUrl);
-      await _user.reload();
+      final String downloadUrl = await storageRef.getDownloadURL();
+      
+      if (isBanner) {
+        await FirebaseFirestore.instance.collection('users').doc(_user.uid).set({
+          'bannerUrl': downloadUrl,
+        }, SetOptions(merge: true));
+        setState(() => _bannerUrl = downloadUrl);
+      } else {
+        await _user.updatePhotoURL(downloadUrl);
+        await _user.reload();
+      }
       
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile picture updated successfully!')),
+        SnackBar(content: Text('${isBanner ? "Banner" : "Profile picture"} updated successfully!')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -64,7 +98,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SnackBar(content: Text('Failed to upload image: $e')),
       );
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      if (mounted) {
+        setState(() {
+          _isUploadingBanner = false;
+          _isUploadingProfile = false;
+        });
+      }
     }
   }
 
@@ -115,21 +154,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              // Dark Background Header
+              // Dark Background Header / Banner
               Container(
                 height: 180,
                 width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
+                decoration: BoxDecoration(
+                  gradient: _bannerUrl == null ? const LinearGradient(
                     colors: [Color(0xFF1a1a1a), Color(0xFF333333)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.only(
+                  ) : null,
+                  image: _bannerUrl != null ? DecorationImage(
+                    image: NetworkImage(_bannerUrl!),
+                    fit: BoxFit.cover,
+                  ) : null,
+                  borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(40),
                     bottomRight: Radius.circular(40),
                   ),
                 ),
+                child: _bannerUrl != null ? Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(40),
+                      bottomRight: Radius.circular(40),
+                    ),
+                  ),
+                ) : null,
               ),
               
               // Back Button
@@ -142,18 +194,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
 
-              // Settings/Share icon (placeholder for future use)
+              // Banner Edit Icon
               Positioned(
                 top: MediaQuery.of(context).padding.top + 10,
                 right: 16,
-                child: IconButton(
-                  icon: const Icon(Icons.share_outlined, color: Colors.white70),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Profile sharing coming soon!")),
-                    );
-                  },
-                ),
+                child: _isUploadingBanner 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.white70),
+                        onPressed: () => _pickAndUploadImage(isBanner: true),
+                      ),
               ),
 
               // Overlapping Profile Picture
@@ -163,7 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 right: 0,
                 child: Center(
                   child: GestureDetector(
-                    onTap: _isUploading ? null : _pickAndUploadImage,
+                    onTap: _isUploadingProfile ? null : () => _pickAndUploadImage(isBanner: false),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
@@ -188,7 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 : null,
                           ),
                         ),
-                        if (_isUploading)
+                        if (_isUploadingProfile)
                           Container(
                             height: 110,
                             width: 110,
@@ -198,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             child: const Center(child: CircularProgressIndicator(color: Colors.white)),
                           ),
-                        if (!_isUploading && _user != null)
+                        if (!_isUploadingProfile && _user != null)
                           Positioned(
                             bottom: 4,
                             right: 4,
@@ -251,7 +301,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => _showAllAchievements(context, isDark),
                   child: const Text("View All", style: TextStyle(color: Color(0xFF1D8CA0))),
                 )
               ],
@@ -283,6 +333,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: Colors.teal, 
                   title: "Task Master", 
                   subtitle: "100 Tasks Done",
+                  isDark: isDark,
+                ),
+                _buildAchievementCard(
+                  icon: Icons.lightbulb, 
+                  color: Colors.yellow.shade700, 
+                  title: "Idea Machine", 
+                  subtitle: "10 Ideas Logged",
+                  isDark: isDark,
+                ),
+                _buildAchievementCard(
+                  icon: Icons.favorite, 
+                  color: Colors.pinkAccent, 
+                  title: "Self Care", 
+                  subtitle: "Prioritized Health",
+                  isDark: isDark,
+                ),
+                _buildAchievementCard(
+                  icon: Icons.emoji_events, 
+                  color: Colors.purpleAccent, 
+                  title: "Goal Crusher", 
+                  subtitle: "10 Goals Met",
                   isDark: isDark,
                 ),
               ],
@@ -367,7 +438,186 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+          
+          // --- ACCOUNT ACTIONS ---
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              "Account",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                _buildActionBar(
+                  icon: Icons.swap_horiz,
+                  title: "Sign in with another account",
+                  color: Colors.blueAccent,
+                  isDark: isDark,
+                  onTap: () async {
+                    try {
+                      try {
+                        await Provider.of<AppDataService>(context, listen: false).syncToFirebase().timeout(const Duration(seconds: 2));
+                      } catch (_) {}
+                      try {
+                        await GoogleSignIn().signOut().timeout(const Duration(seconds: 2));
+                      } catch (_) {}
+                      try {
+                        await FirebaseAuth.instance.signOut().timeout(const Duration(seconds: 2));
+                      } catch (_) {}
+                    } catch (e) {
+                      debugPrint("Logout error: $e");
+                    } finally {
+                      if (context.mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          (route) => false,
+                        );
+                      }
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildActionBar(
+                  icon: Icons.logout,
+                  title: "Log Out",
+                  color: Colors.redAccent,
+                  isDark: isDark,
+                  onTap: () async {
+                    try {
+                      try {
+                        await Provider.of<AppDataService>(context, listen: false).syncToFirebase().timeout(const Duration(seconds: 2));
+                      } catch (_) {}
+                      try {
+                        await GoogleSignIn().signOut().timeout(const Duration(seconds: 2));
+                      } catch (_) {}
+                      try {
+                        await FirebaseAuth.instance.signOut().timeout(const Duration(seconds: 2));
+                      } catch (_) {}
+                    } catch (e) {
+                      debugPrint("Logout error: $e");
+                    } finally {
+                      if (context.mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          (route) => false,
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 60),
         ],
+      ),
+    );
+  }
+
+  void _showAllAchievements(BuildContext context, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey[900] : Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(30),
+            topRight: Radius.circular(30),
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 50,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              "All Achievements",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                childAspectRatio: 1.2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                children: [
+                  _buildAchievementCard(icon: Icons.local_fire_department, color: Colors.orange, title: "7-Day Streak", subtitle: "Unstoppable!", isDark: isDark),
+                  _buildAchievementCard(icon: Icons.star_rounded, color: const Color(0xFFD4AF37), title: "Early Adopter", subtitle: "Joined Unwaver", isDark: isDark),
+                  _buildAchievementCard(icon: Icons.check_circle_rounded, color: Colors.teal, title: "Task Master", subtitle: "100 Tasks Done", isDark: isDark),
+                  _buildAchievementCard(icon: Icons.lightbulb, color: Colors.yellow.shade700, title: "Idea Machine", subtitle: "10 Ideas Logged", isDark: isDark),
+                  _buildAchievementCard(icon: Icons.favorite, color: Colors.pinkAccent, title: "Self Care", subtitle: "Prioritized Health", isDark: isDark),
+                  _buildAchievementCard(icon: Icons.emoji_events, color: Colors.purpleAccent, title: "Goal Crusher", subtitle: "10 Goals Met", isDark: isDark),
+                  _buildAchievementCard(icon: Icons.rocket_launch, color: Colors.blueAccent, title: "Sky Rocket", subtitle: "Unwavering Focus", isDark: isDark),
+                  _buildAchievementCard(icon: Icons.diamond, color: Colors.cyan, title: "Diamond", subtitle: "1 Year Streak", isDark: isDark),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionBar({
+    required IconData icon,
+    required String title,
+    required Color color,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey[800] : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
+          ],
+        ),
       ),
     );
   }

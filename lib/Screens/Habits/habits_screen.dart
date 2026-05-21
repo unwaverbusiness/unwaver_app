@@ -5,6 +5,8 @@ import 'package:unwaver/widgets/main_drawer.dart';
 import 'package:unwaver/widgets/global_app_bar.dart';
 import 'package:unwaver/widgets/reusable_card.dart';
 import 'habit_creation_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:unwaver/services/app_data_service.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'habit_constants.dart';
 import 'package:share_plus/share_plus.dart';
@@ -579,7 +581,6 @@ class _EditHabitScreen extends StatefulWidget {
 class _EditHabitScreenState extends State<_EditHabitScreen> {
   late TextEditingController titleCtrl;
   late TextEditingController categoryCtrl;
-  late TextEditingController tagsCtrl;
   late TextEditingController descriptionCtrl;
   
   late String habitType;
@@ -592,20 +593,15 @@ class _EditHabitScreenState extends State<_EditHabitScreen> {
   late Color _selectedColor;
 
   final List<String> _habitTypes = ['Habits to Build', 'Habits to Break'];
-  final List<String> _pillars = ['Faith', 'Health', 'Relationships', 'Optimization', 'Education', 'Work', 'Creativity'];
   final List<String> _levels = ['Low', 'Medium', 'High', 'Critical'];
+  final List<Tag> _selectedTags = [];
 
   @override
   void initState() {
     super.initState();
-    final tags = (widget.data['tags'] as List<dynamic>?)
-            ?.map((tag) => tag.toString())
-            .toList() ??
-        [];
     
     titleCtrl = TextEditingController(text: widget.data['title'] ?? '');
     categoryCtrl = TextEditingController(text: widget.data['category'] ?? '');
-    tagsCtrl = TextEditingController(text: tags.join(', '));
     descriptionCtrl = TextEditingController(text: widget.data['description'] ?? '');
     
     habitType = widget.data['type'] ?? 'Habits to Build';
@@ -620,40 +616,320 @@ class _EditHabitScreenState extends State<_EditHabitScreen> {
 
     _selectedIcon = iconCode != null ? IconData(iconCode, fontFamily: iconFamily) : Icons.fitness_center;
     _selectedColor = colorValue != null ? Color(colorValue) : Colors.black87;
+
+    final activeTags = Provider.of<AppDataService>(context, listen: false).tags;
+    final habitTagNames = (widget.data['tags'] as List<dynamic>?)
+            ?.map((tag) => tag.toString().trim())
+            .where((tag) => tag.isNotEmpty)
+            .toList() ??
+        [];
+
+    for (var name in habitTagNames) {
+      final existingTag = activeTags.firstWhere(
+        (t) => t.name.toLowerCase() == name.toLowerCase(),
+        orElse: () {
+          final newTag = Tag(
+            id: 't_${DateTime.now().millisecondsSinceEpoch}_${name.hashCode}',
+            name: name,
+            color: Colors.blueGrey,
+          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Provider.of<AppDataService>(context, listen: false).addTag(newTag);
+          });
+          return newTag;
+        },
+      );
+      _selectedTags.add(existingTag);
+    }
   }
 
   @override
   void dispose() {
-    titleCtrl.dispose(); // <-- Added missing controller
+    titleCtrl.dispose();
     categoryCtrl.dispose();
-    tagsCtrl.dispose();
     descriptionCtrl.dispose();
     super.dispose();
   }
 
-  void _saveHabit() async {
-      if (titleCtrl.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a habit name'))
+  void _showCreateTagDialog(BuildContext context, StateSetter setModalState) {
+    final nameController = TextEditingController();
+    Color selectedColor = Colors.blue;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Create New Tag'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Tag Name'),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Text('Color:'),
+                    const SizedBox(width: 16),
+                    GestureDetector(
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Pick a color'),
+                            content: SingleChildScrollView(
+                              child: BlockPicker(
+                                pickerColor: selectedColor,
+                                onColorChanged: (c) => selectedColor = c,
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  setDialogState(() {});
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('Select'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 32, height: 32,
+                        decoration: BoxDecoration(color: selectedColor, shape: BoxShape.circle),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                if (name.isEmpty) return;
+                
+                final service = Provider.of<AppDataService>(context, listen: false);
+                final existingTag = service.tags.firstWhere(
+                  (t) => t.name.toLowerCase() == name.toLowerCase(),
+                  orElse: () {
+                    final newTag = Tag(
+                      id: 't_${DateTime.now().millisecondsSinceEpoch}',
+                      name: name,
+                      color: selectedColor,
+                    );
+                    service.addTag(newTag);
+                    return newTag;
+                  },
+                );
+
+                setState(() {
+                  if (!_selectedTags.any((t) => t.id == existingTag.id)) {
+                    _selectedTags.add(existingTag);
+                  }
+                });
+                
+                setModalState(() {});
+                Navigator.pop(context);
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTagPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final activeTags = Provider.of<AppDataService>(context).activeTags;
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Select Tags", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      TextButton.icon(
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text("New Tag"),
+                        onPressed: () => _showCreateTagDialog(context, setModalState),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (activeTags.isEmpty)
+                    const Text("No tags available. Create some in the Tags menu!")
+                  else
+                    Wrap(
+                      spacing: 8,
+                      children: activeTags.map((tag) {
+                        final isSelected = _selectedTags.any((t) => t.id == tag.id);
+                        return FilterChip(
+                          label: Text(tag.name),
+                          selected: isSelected,
+                          selectedColor: tag.color.withValues(alpha: 0.3),
+                          checkmarkColor: tag.color,
+                          onSelected: (val) {
+                            setState(() {
+                              if (val) {
+                                _selectedTags.add(tag);
+                              } else {
+                                _selectedTags.removeWhere((t) => t.id == tag.id);
+                              }
+                            });
+                            setModalState(() {});
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+                      child: const Text("Done"),
+                    ),
+                  )
+                ],
+              ),
+            );
+          }
         );
-        return;
       }
+    );
+  }
 
-      // Dismiss keyboard for a smoother UX while saving
-      FocusScope.of(context).unfocus(); 
+  void _showNewPillarDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New Life Pillar'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Pillar Name',
+            hintText: 'e.g. Health, Career, etc.',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                final service = Provider.of<AppDataService>(context, listen: false);
+                final exists = service.pillars.any((p) => p.name.toLowerCase() == name.toLowerCase());
+                if (!exists) {
+                  final newPillar = Pillar(
+                    id: 'p_${DateTime.now().millisecondsSinceEpoch}',
+                    name: name,
+                  );
+                  service.addPillar(newPillar);
+                  setState(() {
+                    selectedPillar = name;
+                    categoryCtrl.text = '';
+                  });
+                } else {
+                  final existing = service.pillars.firstWhere((p) => p.name.toLowerCase() == name.toLowerCase());
+                  setState(() {
+                    selectedPillar = existing.name;
+                    categoryCtrl.text = '';
+                  });
+                }
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
 
-      setState(() => _isSaving = true);
-    
-    // ... rest of your try/catch block
+  void _showNewSubPillarDialog(BuildContext context, Pillar currentPillar) {
+    final nameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('New Sub-Pillar for ${currentPillar.name}'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Sub-Pillar Name',
+            hintText: 'e.g. Yoga, Diet, etc.',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                final service = Provider.of<AppDataService>(context, listen: false);
+                final exists = currentPillar.subPillars.any((sub) => sub.toLowerCase() == name.toLowerCase());
+                if (!exists) {
+                  final updatedSubs = List<String>.from(currentPillar.subPillars)..add(name);
+                  service.updatePillar(currentPillar.copyWith(subPillars: updatedSubs));
+                  setState(() {
+                    categoryCtrl.text = name;
+                  });
+                } else {
+                  final existingName = currentPillar.subPillars.firstWhere((sub) => sub.toLowerCase() == name.toLowerCase());
+                  setState(() {
+                    categoryCtrl.text = existingName;
+                  });
+                }
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveHabit() async {
+    if (titleCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a habit name'))
+      );
+      return;
+    }
+
+    FocusScope.of(context).unfocus(); 
+
+    setState(() => _isSaving = true);
     
     try {
-      final updatedTags = tagsCtrl.text
-          .split(',')
-          .map((tag) => tag.trim())
-          .where((tag) => tag.isNotEmpty)
-          .toList();
+      final updatedTags = _selectedTags.map((t) => t.name).toList();
 
-      // Fire and forget update
       widget.habitsCollection.doc(widget.doc.id).update({
         'title': titleCtrl.text.trim(),
         'category': categoryCtrl.text.trim(),
@@ -821,20 +1097,91 @@ class _EditHabitScreenState extends State<_EditHabitScreen> {
 
           // 3. Pillar (Dropdown)
           _buildLabel("Life Pillar"),
-          _buildDropdown(_pillars, selectedPillar, (val) => setState(() => selectedPillar = val!)),
+          Consumer<AppDataService>(
+            builder: (context, dataService, _) {
+              final pillars = dataService.pillars.map((p) => p.name).toList();
+              if (pillars.isEmpty) return const Text("No pillars available.");
+              if (!pillars.contains(selectedPillar)) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  setState(() => selectedPillar = pillars.first);
+                });
+              }
+              final dropdownItems = [...pillars, '+ Add New Pillar...'];
+              return _buildDropdown(
+                dropdownItems,
+                selectedPillar,
+                (val) {
+                  if (val == '+ Add New Pillar...') {
+                    _showNewPillarDialog(context);
+                  } else {
+                    setState(() => selectedPillar = val!);
+                  }
+                },
+              );
+            }
+          ),
           const SizedBox(height: 20),
 
           // 4. Category
           _buildLabel("Category (Sub-pillar)"),
-          TextField(
-            controller: categoryCtrl,
-            decoration: _inputDecoration("e.g. Cardio"),
+          Consumer<AppDataService>(
+            builder: (context, dataService, _) {
+              final currentPillar = dataService.pillars.where((p) => p.name == selectedPillar).firstOrNull;
+              final subs = currentPillar?.subPillars ?? [];
+              
+              if (subs.isEmpty) {
+                return TextField(
+                  controller: categoryCtrl,
+                  decoration: _inputDecoration("e.g. Cardio"),
+                );
+              } else {
+                if (categoryCtrl.text.isEmpty || !subs.contains(categoryCtrl.text)) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    setState(() => categoryCtrl.text = subs.first);
+                  });
+                }
+                final dropdownItems = [...subs, '+ Add New Sub-Pillar...'];
+                return _buildDropdown(
+                  dropdownItems,
+                  categoryCtrl.text,
+                  (val) {
+                    if (val == '+ Add New Sub-Pillar...') {
+                      _showNewSubPillarDialog(context, currentPillar!);
+                    } else {
+                      setState(() => categoryCtrl.text = val!);
+                    }
+                  },
+                );
+              }
+            }
           ),
           const SizedBox(height: 16),
+
+          // Tags Selection
           _buildLabel("Tags"),
-          TextField(
-            controller: tagsCtrl,
-            decoration: _inputDecoration("Comma-separated tags, e.g. Exercise, Strength"),
+          InkWell(
+            onTap: _showTagPicker,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade400),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Wrap(
+                spacing: 8,
+                children: _selectedTags.isEmpty
+                    ? [Text("Select tags...", style: TextStyle(color: Colors.grey.shade400))]
+                    : _selectedTags.map((tag) {
+                        return Chip(
+                          label: Text(tag.name),
+                          backgroundColor: tag.color.withValues(alpha: 0.1),
+                          labelStyle: TextStyle(color: tag.color),
+                          side: BorderSide(color: tag.color),
+                        );
+                      }).toList(),
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           if (selectedPillar == 'Health')

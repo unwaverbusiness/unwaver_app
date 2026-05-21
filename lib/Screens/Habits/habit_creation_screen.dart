@@ -154,6 +154,103 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
     );
   }
 
+  void _showCreateTagDialog(BuildContext context, StateSetter setModalState) {
+    final nameController = TextEditingController();
+    Color selectedColor = Colors.blue;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Create New Tag'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Tag Name'),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Text('Color:'),
+                    const SizedBox(width: 16),
+                    GestureDetector(
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Pick a color'),
+                            content: SingleChildScrollView(
+                              child: BlockPicker(
+                                pickerColor: selectedColor,
+                                onColorChanged: (c) => selectedColor = c,
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  setDialogState(() {});
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('Select'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 32, height: 32,
+                        decoration: BoxDecoration(color: selectedColor, shape: BoxShape.circle),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                if (name.isEmpty) return;
+                
+                final service = context.read<AppDataService>();
+                final existingTag = service.tags.firstWhere(
+                  (t) => t.name.toLowerCase() == name.toLowerCase(),
+                  orElse: () {
+                    final newTag = Tag(
+                      id: 't_${DateTime.now().millisecondsSinceEpoch}',
+                      name: name,
+                      color: selectedColor,
+                    );
+                    service.addTag(newTag);
+                    return newTag;
+                  },
+                );
+
+                setState(() {
+                  if (!_selectedTags.any((t) => t.id == existingTag.id)) {
+                    _selectedTags.add(existingTag);
+                  }
+                });
+                
+                setModalState(() {});
+                Navigator.pop(context);
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showTagPicker() {
     showModalBottomSheet(
       context: context,
@@ -167,7 +264,17 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Select Tags", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Select Tags", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      TextButton.icon(
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text("New Tag"),
+                        onPressed: () => _showCreateTagDialog(context, setModalState),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 16),
                   if (activeTags.isEmpty)
                     const Text("No tags available. Create some in the Tags menu!")
@@ -209,6 +316,105 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
           }
         );
       }
+    );
+  }
+
+  void _showNewPillarDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New Life Pillar'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Pillar Name',
+            hintText: 'e.g. Health, Career, etc.',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                final service = context.read<AppDataService>();
+                final exists = service.pillars.any((p) => p.name.toLowerCase() == name.toLowerCase());
+                if (!exists) {
+                  final newPillar = Pillar(
+                    id: 'p_${DateTime.now().millisecondsSinceEpoch}',
+                    name: name,
+                  );
+                  service.addPillar(newPillar);
+                  setState(() {
+                    _selectedPillar = name;
+                    _categoryController.text = '';
+                  });
+                } else {
+                  final existing = service.pillars.firstWhere((p) => p.name.toLowerCase() == name.toLowerCase());
+                  setState(() {
+                    _selectedPillar = existing.name;
+                    _categoryController.text = '';
+                  });
+                }
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNewSubPillarDialog(BuildContext context, Pillar currentPillar) {
+    final nameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('New Sub-Pillar for ${currentPillar.name}'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Sub-Pillar Name',
+            hintText: 'e.g. Yoga, Diet, etc.',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                final service = context.read<AppDataService>();
+                final exists = currentPillar.subPillars.any((sub) => sub.toLowerCase() == name.toLowerCase());
+                if (!exists) {
+                  final updatedSubs = List<String>.from(currentPillar.subPillars)..add(name);
+                  service.updatePillar(currentPillar.copyWith(subPillars: updatedSubs));
+                  setState(() {
+                    _categoryController.text = name;
+                  });
+                } else {
+                  final existingName = currentPillar.subPillars.firstWhere((sub) => sub.toLowerCase() == name.toLowerCase());
+                  setState(() {
+                    _categoryController.text = existingName;
+                  });
+                }
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -371,7 +577,18 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
                     setState(() => _selectedPillar = pillars.first);
                   });
                 }
-                return _buildDropdown(pillars, _selectedPillar, (val) => setState(() => _selectedPillar = val!));
+                final dropdownItems = [...pillars, '+ Add New Pillar...'];
+                return _buildDropdown(
+                  dropdownItems,
+                  _selectedPillar,
+                  (val) {
+                    if (val == '+ Add New Pillar...') {
+                      _showNewPillarDialog(context);
+                    } else {
+                      setState(() => _selectedPillar = val!);
+                    }
+                  },
+                );
               }
             ),
             const SizedBox(height: 20),
@@ -393,7 +610,18 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
                       setState(() => _categoryController.text = subs.first);
                     });
                   }
-                  return _buildDropdown(subs, _categoryController.text, (val) => setState(() => _categoryController.text = val!));
+                  final dropdownItems = [...subs, '+ Add New Sub-Pillar...'];
+                  return _buildDropdown(
+                    dropdownItems,
+                    _categoryController.text,
+                    (val) {
+                      if (val == '+ Add New Sub-Pillar...') {
+                        _showNewSubPillarDialog(context, currentPillar!);
+                      } else {
+                        setState(() => _categoryController.text = val!);
+                      }
+                    },
+                  );
                 }
               }
             ),

@@ -5,6 +5,11 @@ import 'package:unwaver/screens/settings/notifications/notifications_screen.dart
 import 'package:unwaver/screens/settings/profile/edit_profile_screen.dart';
 import 'package:unwaver/screens/settings/profile/change_password_screen.dart';
 import 'package:unwaver/screens/settings/theme/theme_manager.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
+import '../../services/app_data_service.dart';
+import '../login/login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,13 +20,25 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   // --- STATE VARIABLES ---
-  String _userName = "Nick";
-  String _userEmail = "unwaver.business@gmail.com";
+  String _userName = "User";
+  String _userEmail = "";
+  String? _photoUrl;
 
   bool _emailUpdates = false;
 
   bool _biometricLogin = false;
   final LocalAuthentication _localAuth = LocalAuthentication();
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _userName = user.displayName ?? "User";
+      _userEmail = user.email ?? "";
+      _photoUrl = user.photoURL;
+    }
+  }
 
   // --- LOGIC ---
 
@@ -36,12 +53,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
 
-    if (result != null && result is Map<String, String>) {
-      setState(() {
-        _userName = result['name'] ?? _userName;
-        _userEmail = result['email'] ?? _userEmail;
-      });
+    // Refresh user data directly from Auth when coming back
+    final user = FirebaseAuth.instance.currentUser;
+    setState(() {
+      _userName = user?.displayName ?? _userName;
+      _userEmail = user?.email ?? _userEmail;
+      _photoUrl = user?.photoURL;
+    });
 
+    if (result != null && result is Map<String, String>) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -395,6 +415,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ]),
           const SizedBox(height: 24),
+          _buildSectionHeader("Subscription & Billing"),
+          _buildSettingsGroup(
+              cardColor: cardColor,
+              borderColor: borderColor,
+              children: [
+                _buildTile(
+                  icon: Icons.star,
+                  title: "Upgrade to Premium",
+                  textColor: Colors.orange,
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Premium upgrade coming soon!")));
+                  },
+                ),
+                _buildTile(
+                  icon: Icons.card_membership,
+                  title: "Manage Subscription",
+                  textColor: textColor,
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Subscription management coming soon!")));
+                  },
+                ),
+                _buildTile(
+                  icon: Icons.payment,
+                  title: "Billing Settings",
+                  textColor: textColor,
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Billing settings coming soon!")));
+                  },
+                ),
+              ]),
+          const SizedBox(height: 24),
           _buildSectionHeader("Preferences"),
           _buildSettingsGroup(
               cardColor: cardColor,
@@ -490,7 +541,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () async {
+                try {
+                  // Attempt to save user data, but timeout after 2 seconds if offline
+                  try {
+                    await Provider.of<AppDataService>(context, listen: false)
+                        .syncToFirebase()
+                        .timeout(const Duration(seconds: 2));
+                  } catch (e) {
+                    debugPrint("Sync timeout/error: $e");
+                  }
+                  
+                  // Clear Google session if they used Google Sign-In
+                  try {
+                    await GoogleSignIn().signOut().timeout(const Duration(seconds: 2));
+                  } catch (_) {}
+                  
+                  // Sign out of Firebase Auth
+                  try {
+                    await FirebaseAuth.instance.signOut().timeout(const Duration(seconds: 2));
+                  } catch (e) {
+                    debugPrint("FirebaseAuth signOut error: $e");
+                  }
+                } catch (e) {
+                  debugPrint("Logout error: $e");
+                } finally {
+                  if (context.mounted) {
+                    // Navigate to login screen
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
+                }
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: cardColor,
                 foregroundColor: Colors.red,
@@ -526,7 +611,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           CircleAvatar(
             radius: 30,
             backgroundColor: Colors.grey.withValues(alpha: 0.2),
-            child: const Icon(Icons.person, size: 35, color: Colors.grey),
+            backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
+            child: _photoUrl == null ? const Icon(Icons.person, size: 35, color: Colors.grey) : null,
           ),
           const SizedBox(width: 16),
           Expanded(
