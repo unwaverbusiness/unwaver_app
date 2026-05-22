@@ -3,11 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/app_data_service.dart';
-import '../login/login_screen.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -38,7 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadBanner() async {
     if (_user == null) return;
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(_user!.uid).get();
+      final doc = await FirebaseFirestore.instance.collection('users').doc(_user.uid).get();
       if (doc.exists && doc.data()!.containsKey('bannerUrl')) {
         setState(() {
           _bannerUrl = doc.data()!['bannerUrl'];
@@ -63,8 +62,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (image == null) return;
       
       setState(() {
-        if (isBanner) _isUploadingBanner = true;
-        else _isUploadingProfile = true;
+        if (isBanner) {
+          _isUploadingBanner = true;
+        } else {
+          _isUploadingProfile = true;
+        }
       });
       
       final String path = isBanner 
@@ -477,11 +479,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       debugPrint("Logout error: $e");
                     } finally {
                       if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
-                          (route) => false,
-                        );
+                        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
                       }
                     }
                   },
@@ -507,11 +505,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       debugPrint("Logout error: $e");
                     } finally {
                       if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
-                          (route) => false,
-                        );
+                        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
                       }
                     }
                   },

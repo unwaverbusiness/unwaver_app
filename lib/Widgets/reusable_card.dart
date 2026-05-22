@@ -1,5 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unwaver/screens/habits/exercise/exercise_screen.dart';
 
 // --- CLEAN STATE ENUM ---
@@ -8,6 +10,7 @@ enum CardStatus { none, completed, skipped, failed }
 class ReusableCard extends StatefulWidget {
   // Core Info
   final String habitId;
+  final String itemClass;
   final String title;
   final String? description;
   final IconData icon; 
@@ -18,6 +21,7 @@ class ReusableCard extends StatefulWidget {
   final String? urgency;  
   final String? importance; 
   final String? pillar;   
+  final String? category;
   final List<String>? tags; 
   final DateTime? deadline;
   final String? type;
@@ -37,6 +41,7 @@ class ReusableCard extends StatefulWidget {
   // Exercise support
   final bool isExercise;
   final ValueChanged<Map<String, dynamic>>? onWorkoutSaved;
+  final bool isNativeSync;
 
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -44,7 +49,8 @@ class ReusableCard extends StatefulWidget {
 
   const ReusableCard({
     super.key,
-    required this.habitId, 
+    required this.habitId,
+    this.itemClass = 'habit',
     required this.title,
     this.description,
     required this.icon,
@@ -55,6 +61,7 @@ class ReusableCard extends StatefulWidget {
     this.urgency,         
     this.importance,      
     this.pillar,          
+    this.category,
     this.tags,
     this.deadline,
     this.type,
@@ -70,6 +77,7 @@ class ReusableCard extends StatefulWidget {
     this.onTagsTap,
     this.isExercise = false,
     this.onWorkoutSaved,
+    this.isNativeSync = false,
     this.onEdit,
     this.onDelete,
     this.onShareTap,
@@ -194,54 +202,57 @@ class _ReusableCardState extends State<ReusableCard> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                      if (widget.deadline != null) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.event_busy, size: 14, color: Colors.red.shade400),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Due: ${DateFormat('MMM dd, yyyy').format(widget.deadline!)}',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.red.shade400),
-                            ),
-                          ],
-                        ),
-                      ],
-                      // Priority & Urgency Badges
-                      if ((widget.priority != null && widget.priority!.isNotEmpty) || 
-                          (widget.urgency != null && widget.urgency!.isNotEmpty))
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Row(
-                            children: [
-                              if (widget.priority != null && widget.priority!.isNotEmpty)
-                                _buildWordBadge(
-                                  _formatPriority(widget.priority!), 
-                                  _getPriorityColor(widget.priority!),
-                                  isDark, // Passed missing isDark parameter
-                                ),
-                              if (widget.priority != null && widget.priority!.isNotEmpty && 
-                                  widget.urgency != null && widget.urgency!.isNotEmpty)
-                                const SizedBox(width: 8),
-                              if (widget.urgency != null && widget.urgency!.isNotEmpty)
-                                _buildWordBadge(
-                                  _formatUrgency(widget.urgency!), 
-                                  isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-                                  isDark, // Passed missing isDark parameter
-                                ),
-                              if (widget.type != null && widget.type!.isNotEmpty) ...[
-                                if ((widget.priority != null && widget.priority!.isNotEmpty) || 
-                                    (widget.urgency != null && widget.urgency!.isNotEmpty))
-                                  const SizedBox(width: 8),
-                                _buildWordBadge(
-                                  widget.type!.contains('Build') ? 'BUILD' : 'BREAK',
-                                  widget.type!.contains('Build') ? Colors.green.shade600 : Colors.red.shade600,
-                                  isDark,
-                                ),
-                              ],
-                            ],
+                      // --- METADATA WRAP ---
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          // Deadline / Due Date
+                          _buildMetaChip(
+                            icon: Icons.event,
+                            label: widget.deadline != null 
+                                ? DateFormat('MMM dd, yyyy').format(widget.deadline!)
+                                : 'No Deadline',
+                            color: widget.deadline != null ? Colors.red.shade400 : Colors.grey.shade500,
+                            isDark: isDark,
+                            isBold: widget.deadline != null,
                           ),
-                        ),
+                          // Pillar & Category (Sub-pillar)
+                          if (widget.pillar != null && widget.pillar!.isNotEmpty)
+                            _buildMetaChip(
+                              icon: Icons.account_balance,
+                              label: widget.category != null && widget.category!.isNotEmpty 
+                                  ? '${widget.pillar} > ${widget.category}'
+                                  : widget.pillar!,
+                              color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                              isDark: isDark,
+                            ),
+                          // Priority
+                          if (widget.priority != null && widget.priority!.isNotEmpty)
+                            _buildWordBadge(
+                              _formatPriority(widget.priority!), 
+                              _getPriorityColor(widget.priority!),
+                              isDark,
+                            ),
+                          // Urgency
+                          if (widget.urgency != null && widget.urgency!.isNotEmpty)
+                            _buildWordBadge(
+                              _formatUrgency(widget.urgency!), 
+                              isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                              isDark,
+                            ),
+                          // Tags
+                          if (widget.tags != null && widget.tags!.isNotEmpty)
+                            _buildMetaChip(
+                              icon: Icons.local_offer,
+                              label: '${widget.tags!.length}',
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                              isDark: isDark,
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -261,7 +272,7 @@ class _ReusableCardState extends State<ReusableCard> {
 
           // --- BOTTOM ROW: SECONDARY TOOLS ---
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             decoration: BoxDecoration(
               color: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
               borderRadius: const BorderRadius.only(
@@ -273,16 +284,18 @@ class _ReusableCardState extends State<ReusableCard> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    _buildIconButton(Icons.calendar_month, 'Calendar', widget.onCalendarTap, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
-                    _buildIconButton(Icons.bar_chart, 'Statistics', widget.onStatsTap, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
-                    _buildIconButton(Icons.history, 'History', widget.onHistoryTap, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
-                    _buildIconButton(Icons.label_outline, 'Tags', widget.onTagsTap, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
-                  ],
+                Expanded(
+                  child: _TypeScroller(
+                    docId: widget.habitId,
+                    currentClass: widget.itemClass,
+                    currentType: widget.type,
+                    isDark: isDark,
+                    isNativeSync: widget.isNativeSync,
+                  ),
                 ),
                 Row(
                   children: [
+                    _buildIconButton(Icons.history, 'Archive', widget.onHistoryTap, color: isDark ? Colors.orange.shade300 : Colors.orange),
                     _buildIconButton(Icons.share_outlined, 'Share', widget.onShareTap, color: isDark ? Colors.purple.shade300 : Colors.purple),
                     _buildIconButton(Icons.edit_outlined, 'Edit', widget.onEdit, color: isDark ? Colors.blue.shade300 : Colors.blue),
                     _buildIconButton(Icons.delete_outline, 'Delete', widget.onDelete, color: isDark ? Colors.red.shade300 : Colors.red),
@@ -297,6 +310,7 @@ class _ReusableCardState extends State<ReusableCard> {
   }
 
   // --- Helper Methods ---
+  // Formatter removed as it is now handled by _TypeScroller
 
   Widget _buildCycleButton(bool isDark) {
     IconData icon;
@@ -432,5 +446,226 @@ class _ReusableCardState extends State<ReusableCard> {
       case 'critical': return '!!!!';
       default: return urgency;
     }
+  }
+
+  Widget _buildMetaChip({required IconData icon, required String label, required Color color, required bool isDark, bool isBold = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypeScroller extends StatefulWidget {
+  final String docId;
+  final String currentClass;
+  final String? currentType;
+  final bool isDark;
+  final bool isNativeSync;
+
+  const _TypeScroller({
+    required this.docId,
+    required this.currentClass,
+    this.currentType,
+    required this.isDark,
+    required this.isNativeSync,
+  });
+
+  @override
+  State<_TypeScroller> createState() => _TypeScrollerState();
+}
+
+class _TypeScrollerState extends State<_TypeScroller> {
+  late String _selectedClass;
+  late String _selectedType;
+  
+  final Map<String, List<String>> _typesMap = {
+    'habit': ['Habits to Build', 'Habits to Break'],
+    'goal': ['Short-Term', 'Long-Term', 'Bucket List'],
+    'task': ['One-Time', 'Recurring'],
+    'event': ['One-Time', 'Recurring'],
+  };
+
+  final List<String> _classes = ['habit', 'goal', 'task', 'event'];
+
+  late FixedExtentScrollController _classController;
+  late FixedExtentScrollController _typeController;
+  bool _isScrolling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedClass = widget.currentClass;
+    if (!_classes.contains(_selectedClass)) {
+      _selectedClass = 'habit';
+    }
+    
+    _selectedType = widget.currentType ?? (_typesMap[_selectedClass]!.first);
+    if (!_typesMap[_selectedClass]!.contains(_selectedType)) {
+      _selectedType = _typesMap[_selectedClass]!.first;
+    }
+    
+    _classController = FixedExtentScrollController(initialItem: _classes.indexOf(_selectedClass));
+    _typeController = FixedExtentScrollController(initialItem: _typesMap[_selectedClass]!.indexOf(_selectedType).clamp(0, 99));
+  }
+  
+  @override
+  void didUpdateWidget(covariant _TypeScroller oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentClass != widget.currentClass || oldWidget.currentType != widget.currentType) {
+       _selectedClass = widget.currentClass;
+       if (!_classes.contains(_selectedClass)) _selectedClass = 'habit';
+       
+       _selectedType = widget.currentType ?? (_typesMap[_selectedClass]!.first);
+       if (!_typesMap[_selectedClass]!.contains(_selectedType)) _selectedType = _typesMap[_selectedClass]!.first;
+       
+       if (_classController.hasClients) {
+          _classController.jumpToItem(_classes.indexOf(_selectedClass));
+       }
+       if (_typeController.hasClients) {
+          _typeController.jumpToItem(_typesMap[_selectedClass]!.indexOf(_selectedType).clamp(0, 99));
+       }
+    }
+  }
+
+  @override
+  void dispose() {
+    _classController.dispose();
+    _typeController.dispose();
+    super.dispose();
+  }
+
+  String _formatUI(String raw, bool isClass) {
+     if (isClass) return raw.toUpperCase();
+     if (raw == 'Habits to Build') return 'BUILD';
+     if (raw == 'Habits to Break') return 'BREAK';
+     return raw.toUpperCase();
+  }
+
+  void _updateFirestore() {
+     if (widget.isNativeSync) return;
+     FirebaseFirestore.instance.collection('habits').doc(widget.docId).update({
+        'itemClass': _selectedClass,
+        'type': _selectedType,
+     });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+     final textStyle = TextStyle(
+       fontWeight: FontWeight.bold,
+       fontSize: 12,
+       color: widget.isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+       letterSpacing: 0.5,
+     );
+
+     // Only render if docId exists or it's a native event
+     if (widget.docId.isEmpty || widget.isNativeSync) {
+        return Text(
+          "${_formatUI(_selectedClass, true)} • ${_formatUI(_selectedType, false)}",
+          style: textStyle,
+        );
+     }
+
+     return SizedBox(
+       height: 40, // Reduced height for tighter padding
+       child: ScrollConfiguration(
+         behavior: ScrollConfiguration.of(context).copyWith(
+           dragDevices: {
+             PointerDeviceKind.touch,
+             PointerDeviceKind.mouse,
+             PointerDeviceKind.trackpad,
+           },
+         ),
+         child: NotificationListener<ScrollNotification>(
+           onNotification: (notification) {
+             if (notification is ScrollStartNotification || notification is ScrollUpdateNotification) {
+               if (!_isScrolling) setState(() => _isScrolling = true);
+             } else if (notification is ScrollEndNotification) {
+               if (_isScrolling) setState(() => _isScrolling = false);
+             }
+             return false;
+           },
+           child: Row(
+             mainAxisSize: MainAxisSize.min,
+             crossAxisAlignment: CrossAxisAlignment.center,
+             children: [
+                SizedBox(
+                  width: 60, 
+                  child: ListWheelScrollView.useDelegate(
+                     controller: _classController,
+                     itemExtent: 20,
+                     physics: const FixedExtentScrollPhysics(),
+                     overAndUnderCenterOpacity: _isScrolling ? 0.3 : 0.0,
+                     onSelectedItemChanged: (idx) {
+                      setState(() {
+                         _selectedClass = _classes[idx];
+                         _selectedType = _typesMap[_selectedClass]!.first;
+                         if (_typeController.hasClients) {
+                            _typeController.jumpToItem(0);
+                         }
+                      });
+                      _updateFirestore();
+                   },
+                   childDelegate: ListWheelChildBuilderDelegate(
+                      childCount: _classes.length,
+                      builder: (context, idx) {
+                         return Align(
+                           alignment: Alignment.centerRight,
+                           child: Text(_formatUI(_classes[idx], true), style: textStyle, maxLines: 1)
+                         );
+                      }
+                   ),
+                ),
+              ),
+              Text('   •   ', style: textStyle),
+              SizedBox(
+                width: 100,
+                child: ListWheelScrollView.useDelegate(
+                   controller: _typeController,
+                   itemExtent: 20,
+                   physics: const FixedExtentScrollPhysics(),
+                   overAndUnderCenterOpacity: _isScrolling ? 0.3 : 0.0,
+                   onSelectedItemChanged: (idx) {
+                      setState(() {
+                         _selectedType = _typesMap[_selectedClass]![idx];
+                      });
+                      _updateFirestore();
+                   },
+                   childDelegate: ListWheelChildBuilderDelegate(
+                      childCount: _typesMap[_selectedClass]!.length,
+                      builder: (context, idx) {
+                         return Align(
+                           alignment: Alignment.centerLeft,
+                           child: Text(_formatUI(_typesMap[_selectedClass]![idx], false), style: textStyle, maxLines: 1, overflow: TextOverflow.ellipsis)
+                         );
+                      }
+                   ),
+                ),
+              ),
+           ],
+         ),
+       ),
+     ),
+   );
   }
 }

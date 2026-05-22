@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Needed for Autofill completion
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unwaver/screens/login/login_screen.dart';
-import 'package:unwaver/screens/layout/main_layout.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -49,11 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         TextInput.finishAutofillContext(); 
       }
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const MainLayout()),
-        (route) => false,
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -71,11 +66,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await FirebaseAuth.instance.signInAnonymously();
       
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const MainLayout()),
-        (route) => false,
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

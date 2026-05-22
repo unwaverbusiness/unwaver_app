@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../today/today_screen.dart';
-import '../Goals/goal_overview_screen.dart';
 import '../Habits/habits_screen.dart';
 import '../purpose/purpose_generator_screen.dart';
 import '../Schedule/schedule_screen.dart';
@@ -33,7 +32,6 @@ class _MainLayoutState extends State<MainLayout> {
 
   final List<Widget> _screens = [
     const TodayScreen(),
-    const GoalOverviewScreen(),
     const HabitsScreen(),
     const PurposeGeneratorScreen(),
     const ScheduleScreen(),
@@ -58,19 +56,14 @@ class _MainLayoutState extends State<MainLayout> {
         onDestinationSelected: _onItemTapped,
         destinations: const <NavigationDestination>[
           NavigationDestination(
-            icon: Icon(Icons.wb_sunny_outlined),
-            selectedIcon: Icon(Icons.wb_sunny),
+            icon: TodayNavIcon(isSelected: false),
+            selectedIcon: TodayNavIcon(isSelected: true),
             label: 'Today',
           ),
           NavigationDestination(
-            icon: Icon(Icons.track_changes_outlined),
-            selectedIcon: Icon(Icons.track_changes),
-            label: 'Goals',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.cached),
-            selectedIcon: Icon(Icons.cached),
-            label: 'Habits',
+            icon: Icon(Icons.assignment_outlined),
+            selectedIcon: Icon(Icons.assignment),
+            label: 'Planner',
           ),
           NavigationDestination(
             icon: PurposeNavIcon(), 
@@ -115,6 +108,43 @@ class PurposeNavIcon extends StatelessWidget {
           color: iconColor, 
         ),
       ),
+    );
+  }
+}
+
+class TodayNavIcon extends StatelessWidget {
+  final bool isSelected;
+  
+  const TodayNavIcon({
+    super.key, 
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dayString = DateTime.now().day.toString();
+    final iconColor = IconTheme.of(context).color;
+    
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(
+          isSelected ? Icons.calendar_today : Icons.calendar_today_outlined,
+          size: 24,
+        ),
+        Positioned(
+          top: 9, // Centered in the blank space of the calendar_today icon
+          child: Text(
+            dayString,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: iconColor,
+              height: 1.0,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -458,7 +458,7 @@ class PostCard extends StatelessWidget {
 
   void _deletePost() {
     postDoc.reference.delete();
-    // TODO: Also delete associated media from Storage if mediaUrl exists
+    // Future Action: Also delete associated media from Storage if mediaUrl exists
   }
 
   void _sharePost() {
@@ -707,7 +707,7 @@ class PostCard extends StatelessWidget {
                   // COMMENT BUTTON
                   InkWell(
                     onTap: () {
-                      // TODO: Navigate to Comments Screen
+                      // Future Action: Navigate to Comments Screen
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(4.0),

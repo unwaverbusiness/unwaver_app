@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:unwaver/screens/login/register_screen.dart';
-import 'package:unwaver/screens/layout/main_layout.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,11 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
       
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const MainLayout()),
-        (route) => false,
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
 
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -97,11 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await FirebaseAuth.instance.signInWithCredential(credential);
 
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const MainLayout()),
-        (route) => false,
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -56,3 +56,13 @@ const List<IconData> kHabitIcons = [
   Icons.temple_buddhist_rounded, Icons.psychology_rounded, Icons.wb_sunny_rounded,
   Icons.brightness_3_rounded, Icons.filter_vintage_rounded, Icons.balance_rounded
 ];
+
+const List<Color> kPresetColors = [
+  Colors.red, Colors.pink, Colors.purple, Colors.deepPurple,
+  Colors.indigo, Colors.blue, Colors.lightBlue, Colors.cyan,
+  Colors.teal, Colors.green, Colors.lightGreen, Colors.lime,
+  Colors.yellow, Colors.amber, Colors.orange, Colors.deepOrange,
+  Colors.brown, Colors.grey, Colors.blueGrey, Colors.black,
+];
+
+List<Color> kRecentColors = [];

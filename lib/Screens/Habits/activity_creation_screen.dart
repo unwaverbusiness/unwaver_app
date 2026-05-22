@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:unwaver/services/app_data_service.dart';
 import 'package:unwaver/screens/habits/exercise/exercise_screen.dart';
 
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'habit_constants.dart';
+import 'package:unwaver/screens/habits/ai_activity_creator_screen.dart';
 // import 'workout_tracking_screen.dart'; 
 
-class HabitCreationScreen extends StatefulWidget {
-  const HabitCreationScreen({super.key});
+class ActivityCreationScreen extends StatefulWidget {
+  const ActivityCreationScreen({super.key});
 
   @override
-  State<HabitCreationScreen> createState() => _HabitCreationScreenState();
+  State<ActivityCreationScreen> createState() => _ActivityCreationScreenState();
 }
 
-class _HabitCreationScreenState extends State<HabitCreationScreen> {
+class _ActivityCreationScreenState extends State<ActivityCreationScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // --- Controllers & State ---
@@ -25,6 +27,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
   final TextEditingController _tagsController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
+  String _itemClass = 'habit'; // 'habit', 'goal', 'task'
   String _habitType = 'Habits to Build';
   String _selectedPillar = 'Health';
   String _priority = 'Medium';
@@ -41,7 +44,12 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
   Color _selectedColor = Colors.teal; 
 
   // --- Dropdown Options ---
-  final List<String> _habitTypes = ['Habits to Build', 'Habits to Break'];
+  List<String> get _currentTypes {
+    if (_itemClass == 'goal') return ['Short-Term', 'Long-Term', 'Bucket List'];
+    if (_itemClass == 'task') return ['One-Time', 'Recurring'];
+    if (_itemClass == 'event') return ['One-Time', 'Recurring'];
+    return ['Habits to Build', 'Habits to Break'];
+  }
   
   final List<Tag> _selectedTags = [];
 
@@ -49,6 +57,51 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
 
   // Expanded icon and color library removed, using habit_constants instead
 
+  Future<void> _openAiCreator() async {
+    final data = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AiActivityCreatorScreen()),
+    );
+
+    if (data != null && data is Map<String, dynamic>) {
+      setState(() {
+        if (data.containsKey('itemClass')) {
+          _itemClass = data['itemClass'];
+          if (!_currentTypes.contains(_habitType)) {
+             _habitType = _currentTypes.first; 
+          }
+        }
+        if (data.containsKey('type') && _currentTypes.contains(data['type'])) {
+          _habitType = data['type'];
+        }
+        if (data.containsKey('title')) {
+          _nameController.text = data['title'];
+        }
+        if (data.containsKey('description')) {
+          _descriptionController.text = data['description'];
+        }
+        if (data.containsKey('pillar') && ['Health', 'Wealth', 'Mind', 'Soul', 'Relationships'].contains(data['pillar'])) {
+          _selectedPillar = data['pillar'];
+        }
+        if (data.containsKey('category')) {
+          _categoryController.text = data['category'];
+        }
+        if (data.containsKey('tags') && data['tags'] is List) {
+          _selectedTags.clear();
+          for (var tag in data['tags']) {
+            _selectedTags.add(Tag(
+              id: DateTime.now().millisecondsSinceEpoch.toString() + tag.toString(),
+              name: tag.toString(),
+              color: Colors.blueAccent,
+            ));
+          }
+        }
+        if (data.containsKey('iconCodePoint') && data.containsKey('iconFontFamily')) {
+          _selectedIcon = IconData(data['iconCodePoint'], fontFamily: data['iconFontFamily']);
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -127,29 +180,96 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
     Color tempColor = _selectedColor;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select a Color', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: HueRingPicker(
-            pickerColor: tempColor,
-            onColorChanged: (color) {
-              tempColor = color;
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          ElevatedButton(
-            child: const Text('Select'),
-            onPressed: () {
-              setState(() => _selectedColor = tempColor);
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Select a Color', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: HueRingPicker(
+                      pickerColor: tempColor,
+                      onColorChanged: (color) {
+                        setDialogState(() {
+                          tempColor = color;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Presets', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: kPresetColors.map((color) => GestureDetector(
+                      onTap: () {
+                        setDialogState(() {
+                          tempColor = color;
+                        });
+                      },
+                      child: Container(
+                        width: 32, height: 32,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: tempColor == color ? Colors.black : Colors.grey.shade300, width: tempColor == color ? 3 : 1),
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                  if (kRecentColors.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    const Text('Recent', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: kRecentColors.map((color) => GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            tempColor = color;
+                          });
+                        },
+                        child: Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: tempColor == color ? Colors.black : Colors.grey.shade300, width: tempColor == color ? 3 : 1),
+                          ),
+                        ),
+                      )).toList(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                child: const Text('Cancel'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              ElevatedButton(
+                child: const Text('Select'),
+                onPressed: () {
+                  setState(() => _selectedColor = tempColor);
+                  if (!kRecentColors.contains(tempColor)) {
+                    kRecentColors.insert(0, tempColor);
+                    if (kRecentColors.length > 10) kRecentColors.removeLast();
+                  } else {
+                    kRecentColors.remove(tempColor);
+                    kRecentColors.insert(0, tempColor);
+                  }
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -425,6 +545,8 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
       FocusScope.of(context).unfocus(); // Dismiss keyboard
 
       final newHabit = {
+        'userId': FirebaseAuth.instance.currentUser?.uid,
+        'itemClass': _itemClass,
         'title': _nameController.text.trim(),
         'type': _habitType,
         'category': _categoryController.text.trim(),
@@ -466,9 +588,29 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             ),
           );
         } else {
-          // Fire and forget the save so we don't hang on slow networks
-          FirebaseFirestore.instance.collection('habits').add(newHabit);
+          final String activityName = _nameController.text.trim().isEmpty ? "Activity" : _nameController.text.trim();
+          final String activityType = _formatUI(_itemClass, true); // formats 'habit' to 'Habit'
+          
+          // Save in background (optimistic update)
+          Future.microtask(() async {
+            try {
+              await FirebaseFirestore.instance.collection('habits').add(newHabit);
+            } catch (e) {
+              debugPrint("Error saving: $e");
+            }
+          });
+          
           if (!mounted) return;
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$activityName $activityType Created!'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          
           Navigator.pop(context); // Standard save, go back to dashboard
         }
       } catch (e) {
@@ -482,16 +624,27 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
     }
   }
 
+  String _formatUI(String val, bool toUpper) {
+    if (val.isEmpty) return '';
+    if (toUpper) return val.toUpperCase();
+    return val[0].toUpperCase() + val.substring(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("New Habit", style: TextStyle(color: Colors.black)),
+        title: const Text("New Activity", style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome, color: Colors.blueAccent),
+            tooltip: "Create with AI",
+            onPressed: _openAiCreator,
+          ),
           // THE TRIGGER: Appears instantly if marked as an exercise
           if (_isExercise)
             IconButton(
@@ -513,6 +666,10 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            // --- Item Class Toggle ---
+            _buildItemClassToggle(),
+            const SizedBox(height: 24),
+
             // --- Visual Identity ---
             Row(
               children: [
@@ -564,7 +721,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             const SizedBox(height: 20),
 
             _buildLabel("Classification"),
-            _buildDropdown(_habitTypes, _habitType, (val) => setState(() => _habitType = val!)),
+            _buildDropdown(_currentTypes, _habitType, (val) => setState(() => _habitType = val!)),
             const SizedBox(height: 20),
 
             _buildLabel("Life Pillar"),
@@ -725,7 +882,7 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
             TextFormField(
               controller: _descriptionController,
               maxLines: 4,
-              decoration: _inputDecoration("Describe the habit and why it matters..."),
+              decoration: _inputDecoration("Describe the item and why it matters..."),
             ),
             
             const SizedBox(height: 40),
@@ -742,12 +899,58 @@ class _HabitCreationScreenState extends State<HabitCreationScreen> {
                 ),
                 child: _isSaving 
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text("CREATE HABIT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    : Text("CREATE ${_itemClass.toUpperCase()}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildItemClassToggle() {
+    final Map<String, String> classes = {
+      'habit': 'Habit',
+      'goal': 'Goal',
+      'task': 'Task',
+      'event': 'Event',
+    };
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: classes.entries.map((entry) {
+        final isSelected = _itemClass == entry.key;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _itemClass = entry.key;
+                if (entry.key == 'habit') _habitType = 'Habits to Build';
+                if (entry.key == 'goal') _habitType = 'Short-Term';
+                if (entry.key == 'task') _habitType = 'One-Time';
+                if (entry.key == 'event') _habitType = 'One-Time';
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.black : Colors.grey[200],
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                entry.value,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 

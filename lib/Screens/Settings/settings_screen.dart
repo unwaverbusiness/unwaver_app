@@ -9,7 +9,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import '../../services/app_data_service.dart';
-import '../login/login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -185,7 +184,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // TODO: Wire up Deactivate Logic
+                // Future Action: Wire up Deactivate Logic
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text("Account deactivated.", style: TextStyle(color: Colors.white)),
@@ -207,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               onPressed: () {
                 Navigator.of(context).pop();
-                // TODO: Wire up Delete Logic (May require re-auth)
+                // Future Action: Wire up Delete Logic (May require re-auth)
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text("Account permanently deleted.", style: TextStyle(color: Colors.white)),
@@ -567,12 +566,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   debugPrint("Logout error: $e");
                 } finally {
                   if (context.mounted) {
-                    // Navigate to login screen
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
-                      (route) => false,
-                    );
+                    // Navigate to root to restore AuthGate
+                    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
                   }
                 }
               },
