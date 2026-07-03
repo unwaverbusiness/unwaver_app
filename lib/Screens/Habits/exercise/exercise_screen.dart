@@ -1,23 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+import 'package:flutter/services.dart';
+
+enum TrackingType { weightAndReps, timeAndDistance }
 
 // --- Data Models for Dynamic State ---
 class SetEntry {
   TextEditingController repsCtrl = TextEditingController();
   TextEditingController weightCtrl = TextEditingController();
+  TextEditingController timeCtrl = TextEditingController();
+  TextEditingController distanceCtrl = TextEditingController();
+  
+  int? previousReps;
+  double? previousWeight;
+  int? previousTime;
+  double? previousDistance;
 
   void dispose() {
     repsCtrl.dispose();
     weightCtrl.dispose();
+    timeCtrl.dispose();
+    distanceCtrl.dispose();
   }
 }
 
 class ExerciseEntry {
   TextEditingController nameCtrl = TextEditingController();
-  List<SetEntry> sets = [SetEntry()]; // Start with 1 set by default
+  TextEditingController noteCtrl = TextEditingController();
+  
+  String category = 'Push';
+  TrackingType trackingType = TrackingType.weightAndReps;
+  bool isNoteVisible = false;
+  
+  List<SetEntry> sets = [SetEntry()];
+
+  Timer? debounceTimer;
 
   void dispose() {
     nameCtrl.dispose();
+    noteCtrl.dispose();
+    debounceTimer?.cancel();
     for (var set in sets) {
       set.dispose();
     }
@@ -43,7 +66,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isSaving = false;
 
-  String _selectedCategory = 'Push';
   final List<String> _categories = [
     'Push', 'Pull', 'Legs', 'Cardio', 'Arms', 'Core', 'Full Body'
   ];
@@ -54,8 +76,26 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   // Local history for immediate UI updates if needed
   final List<Map<String, dynamic>> _workoutHistory = [];
 
+  // --- General Workout Note ---
+  final TextEditingController _workoutNoteCtrl = TextEditingController();
+
+  // --- Routine Toggle ---
+  bool _saveAsRoutine = false;
+
+  // --- Stopwatch ---
+  final Stopwatch _stopwatch = Stopwatch();
+  Timer? _stopwatchTimer;
+  String _stopwatchText = "00:00:00";
+
+  // --- Countdown Timer ---
+  Timer? _countdownTimer;
+  int _countdownSeconds = 0;
+
   @override
   void dispose() {
+    _workoutNoteCtrl.dispose();
+    _stopwatchTimer?.cancel();
+    _countdownTimer?.cancel();
     // CRITICAL: Prevent memory leaks from dynamically generated controllers
     for (var exercise in _exercises) {
       exercise.dispose();
@@ -90,6 +130,110 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     });
   }
 
+  // --- Timer & Stopwatch Methods ---
+  void _toggleStopwatch() {
+    setState(() {
+      if (_stopwatch.isRunning) {
+        _stopwatch.stop();
+        _stopwatchTimer?.cancel();
+      } else {
+        _stopwatch.start();
+        _stopwatchTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!mounted) return;
+          setState(() {
+            final duration = _stopwatch.elapsed;
+            final hours = duration.inHours.toString().padLeft(2, '0');
+            final mins = (duration.inMinutes % 60).toString().padLeft(2, '0');
+            final secs = (duration.inSeconds % 60).toString().padLeft(2, '0');
+            _stopwatchText = "$hours:$mins:$secs";
+          });
+        });
+      }
+    });
+  }
+
+  void _resetStopwatch() {
+    setState(() {
+      _stopwatch.stop();
+      _stopwatch.reset();
+      _stopwatchTimer?.cancel();
+      _stopwatchText = "00:00:00";
+    });
+  }
+
+  void _startCountdown(int seconds) {
+    _countdownTimer?.cancel();
+    setState(() {
+      _countdownSeconds = seconds;
+    });
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_countdownSeconds > 0) {
+          _countdownSeconds--;
+        } else {
+          timer.cancel();
+          HapticFeedback.vibrate();
+        }
+      });
+    });
+  }
+
+  // --- Historical Data Fetching ---
+  void _onExerciseNameChanged(ExerciseEntry exercise) {
+    exercise.debounceTimer?.cancel();
+    exercise.debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _fetchPreviousMetrics(exercise);
+    });
+  }
+
+  Future<void> _fetchPreviousMetrics(ExerciseEntry exercise) async {
+    final name = exercise.nameCtrl.text.trim();
+    if (name.isEmpty) return;
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('habits')
+          .doc(widget.habitId)
+          .collection('workouts')
+          .orderBy('timestamp', descending: true)
+          .limit(10)
+          .get();
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final exercises = data['exercises'] as List<dynamic>?;
+        if (exercises == null) continue;
+
+        for (var ex in exercises) {
+          if (ex['name']?.toString().toLowerCase() == name.toLowerCase()) {
+            final sets = ex['sets'] as List<dynamic>?;
+            if (sets != null && sets.isNotEmpty) {
+              // Populate previous data for existing sets in UI
+              for (int i = 0; i < exercise.sets.length; i++) {
+                if (i < sets.length) {
+                  final prevSet = sets[i];
+                  setState(() {
+                    exercise.sets[i].previousReps = prevSet['reps'] as int?;
+                    exercise.sets[i].previousWeight = (prevSet['weight'] as num?)?.toDouble();
+                    exercise.sets[i].previousTime = prevSet['time'] as int?;
+                    exercise.sets[i].previousDistance = (prevSet['distance'] as num?)?.toDouble();
+                  });
+                }
+              }
+            }
+            return; // Found the most recent match, stop searching
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching previous metrics: $e");
+    }
+  }
+
   // --- Save Workout with Timestamp ---
   Future<void> _saveWorkout() async {
     if (!_formKey.currentState!.validate()) return;
@@ -106,15 +250,21 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     try {
       final now = DateTime.now();
       final workoutData = {
-        'category': _selectedCategory,
+        'note': _workoutNoteCtrl.text.trim(),
         'exercises': _exercises.map((ex) => {
           'name': ex.nameCtrl.text.trim(),
+          'category': ex.category,
+          'note': ex.noteCtrl.text.trim(),
+          'trackingType': ex.trackingType.toString(),
           'sets': ex.sets.map((set) => {
-            'reps': int.tryParse(set.repsCtrl.text.trim()) ?? 0,
-            'weight': double.tryParse(set.weightCtrl.text.trim()) ?? 0.0,
+            'reps': int.tryParse(set.repsCtrl.text.trim()),
+            'weight': double.tryParse(set.weightCtrl.text.trim()),
+            'time': int.tryParse(set.timeCtrl.text.trim()),
+            'distance': double.tryParse(set.distanceCtrl.text.trim()),
           }).toList(),
         }).toList(),
         'timestamp': now,
+        'duration': _stopwatchText,
       };
 
       // Save to Firestore
@@ -123,6 +273,19 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           .doc(widget.habitId)
           .collection('workouts')
           .add(workoutData);
+
+      // Save as Routine if toggled
+      if (_saveAsRoutine) {
+        await FirebaseFirestore.instance
+            .collection('habits')
+            .doc(widget.habitId)
+            .collection('routines')
+            .add({
+          'name': 'Routine ${now.month}/${now.day}/${now.year}', // Prompt for name in a real app, auto-gen for now
+          'exercises': workoutData['exercises'],
+          'timestamp': now,
+        });
+      }
 
       // Add to local history
       setState(() => _workoutHistory.add(workoutData));
@@ -154,6 +317,194 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     }
   }
 
+  Future<void> _loadRoutine() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('habits')
+        .doc(widget.habitId)
+        .collection('routines')
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No routines found.')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    final selectedRoutine = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Select Routine'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: snapshot.docs.length,
+              itemBuilder: (context, index) {
+                final doc = snapshot.docs[index];
+                final data = doc.data();
+                return ListTile(
+                  title: Text(data['name'] ?? 'Routine'),
+                  onTap: () => Navigator.pop(context, data),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    );
+
+    if (selectedRoutine != null) {
+      final exercisesData = selectedRoutine['exercises'] as List<dynamic>?;
+      if (exercisesData != null) {
+        setState(() {
+          for (var ex in _exercises) {
+            ex.dispose();
+          }
+          _exercises.clear();
+          
+          for (var exData in exercisesData) {
+            final ex = ExerciseEntry();
+            ex.nameCtrl.text = exData['name'] ?? '';
+            ex.category = exData['category'] ?? 'Push';
+            ex.noteCtrl.text = exData['note'] ?? '';
+            ex.trackingType = exData['trackingType'] == TrackingType.timeAndDistance.toString() 
+                ? TrackingType.timeAndDistance 
+                : TrackingType.weightAndReps;
+            
+            ex.sets.clear();
+            final setsData = exData['sets'] as List<dynamic>?;
+            if (setsData != null && setsData.isNotEmpty) {
+              for (var setData in setsData) {
+                final setEntry = SetEntry();
+                setEntry.repsCtrl.text = setData['reps']?.toString() ?? '';
+                setEntry.weightCtrl.text = setData['weight']?.toString() ?? '';
+                setEntry.timeCtrl.text = setData['time']?.toString() ?? '';
+                setEntry.distanceCtrl.text = setData['distance']?.toString() ?? '';
+                ex.sets.add(setEntry);
+              }
+            } else {
+               ex.sets.add(SetEntry());
+            }
+            _exercises.add(ex);
+          }
+          if (_exercises.isEmpty) _exercises.add(ExerciseEntry());
+        });
+      }
+    }
+  }
+
+  void _showTimerBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Timers", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 24),
+                  // Stopwatch UI
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+                    child: Column(
+                      children: [
+                        const Text("Stopwatch", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(_stopwatchText, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, fontFeatures: [FontFeature.tabularFigures()])),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                _toggleStopwatch();
+                                setModalState(() {});
+                                setState(() {});
+                              },
+                              child: Text(_stopwatch.isRunning ? "Pause" : "Start"),
+                            ),
+                            const SizedBox(width: 16),
+                            TextButton(
+                              onPressed: () {
+                                _resetStopwatch();
+                                setModalState(() {});
+                                setState(() {});
+                              },
+                              child: const Text("Reset"),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Countdown UI
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+                    child: Column(
+                      children: [
+                        const Text("Rest Timer", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text("${(_countdownSeconds ~/ 60).toString().padLeft(2, '0')}:${(_countdownSeconds % 60).toString().padLeft(2, '0')}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, fontFeatures: [FontFeature.tabularFigures()])),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                _startCountdown(30);
+                                setModalState(() {});
+                                setState(() {});
+                              },
+                              child: const Text("+30s"),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                _startCountdown(60);
+                                setModalState(() {});
+                                setState(() {});
+                              },
+                              child: const Text("+60s"),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                _startCountdown(90);
+                                setModalState(() {});
+                                setState(() {});
+                              },
+                              child: const Text("+90s"),
+                            ),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () {
+                             _countdownTimer?.cancel();
+                             _countdownSeconds = 0;
+                             setModalState(() {});
+                             setState(() {});
+                          },
+                          child: const Text("Stop"),
+                        )
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            );
+          },
+        );
+      }
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -179,34 +530,53 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           )
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showTimerBottomSheet,
+        backgroundColor: Colors.black,
+        child: const Icon(Icons.timer, color: Colors.white),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // --- Category Selection (Chips) ---
-            const Text("Muscle Group", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            // --- Header Controls ---
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _loadRoutine,
+                  icon: const Icon(Icons.file_download, size: 18),
+                  label: const Text("Load Routine"),
+                ),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _saveAsRoutine,
+                      onChanged: (val) => setState(() => _saveAsRoutine = val ?? false),
+                    ),
+                    const Text("Save as Routine", style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _categories.map((category) {
-                final isSelected = _selectedCategory == category;
-                return ChoiceChip(
-                  label: Text(category),
-                  selected: isSelected,
-                  selectedColor: Colors.black,
-                  labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedCategory = category);
-                  },
-                );
-              }).toList(),
+            
+            // --- Workout Notes ---
+            TextFormField(
+              controller: _workoutNoteCtrl,
+              decoration: InputDecoration(
+                hintText: "Workout Notes (e.g., Felt great today!)",
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              maxLines: 2,
             ),
             const SizedBox(height: 24),
-            const Divider(),
 
             // --- Dynamic Exercises List ---
             ..._exercises.asMap().entries.map((entry) {
@@ -232,8 +602,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                           Expanded(
                             child: TextFormField(
                               controller: exercise.nameCtrl,
+                              onChanged: (val) => _onExerciseNameChanged(exercise),
                               decoration: const InputDecoration(
-                                hintText: "Exercise Name (e.g. Bench Press)",
+                                hintText: "Exercise Name",
                                 border: InputBorder.none,
                                 hintStyle: TextStyle(color: Colors.grey, fontSize: 18),
                               ),
@@ -242,20 +613,69 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                             ),
                           ),
                           IconButton(
+                            icon: Icon(Icons.note_add, color: exercise.isNoteVisible ? Colors.teal : Colors.grey),
+                            onPressed: () => setState(() => exercise.isNoteVisible = !exercise.isNoteVisible),
+                          ),
+                          IconButton(
                             icon: const Icon(Icons.close, color: Colors.redAccent),
                             onPressed: () => _removeExercise(exIndex),
                           )
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      
+                      // Custom Options (Category & Type)
+                      Row(
+                        children: [
+                          DropdownButton<String>(
+                            value: exercise.category,
+                            style: const TextStyle(fontSize: 12, color: Colors.black87),
+                            underline: const SizedBox(),
+                            items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                            onChanged: (val) => setState(() => exercise.category = val!),
+                          ),
+                          const SizedBox(width: 16),
+                          DropdownButton<TrackingType>(
+                            value: exercise.trackingType,
+                            style: const TextStyle(fontSize: 12, color: Colors.black87),
+                            underline: const SizedBox(),
+                            items: const [
+                              DropdownMenuItem(value: TrackingType.weightAndReps, child: Text("Weight & Reps")),
+                              DropdownMenuItem(value: TrackingType.timeAndDistance, child: Text("Time & Distance")),
+                            ],
+                            onChanged: (val) => setState(() => exercise.trackingType = val!),
+                          ),
+                        ],
+                      ),
+                      
+                      // Notes specific to exercise
+                      if (exercise.isNoteVisible) ...[
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: exercise.noteCtrl,
+                          decoration: InputDecoration(
+                            hintText: "Exercise Notes",
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            isDense: true,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          ),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
                       
                       // Headers for Sets
-                      const Row(
+                      Row(
                         children: [
-                          SizedBox(width: 30, child: Text("Set", style: TextStyle(color: Colors.grey, fontSize: 12))),
-                          Expanded(child: Text("lbs/kg", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12))),
-                          Expanded(child: Text("Reps", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12))),
-                          SizedBox(width: 48), // Spacing for delete icon
+                          const SizedBox(width: 30, child: Text("Set", style: TextStyle(color: Colors.grey, fontSize: 12))),
+                          if (exercise.trackingType == TrackingType.weightAndReps) ...[
+                            const Expanded(child: Text("lbs/kg", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12))),
+                            const Expanded(child: Text("Reps", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12))),
+                          ] else ...[
+                            const Expanded(child: Text("Seconds", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12))),
+                            const Expanded(child: Text("Miles/Km", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12))),
+                          ],
+                          const SizedBox(width: 48), // Spacing for delete icon
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -265,25 +685,62 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                         int setIndex = setEntry.key;
                         SetEntry set = setEntry.value;
 
+                        String? previousText;
+                        if (exercise.trackingType == TrackingType.weightAndReps) {
+                           if (set.previousWeight != null && set.previousReps != null) {
+                             previousText = "Prev: ${set.previousWeight}x${set.previousReps}";
+                           }
+                        } else {
+                           if (set.previousTime != null && set.previousDistance != null) {
+                             previousText = "Prev: ${set.previousTime}s ${set.previousDistance}m";
+                           }
+                        }
+
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(
-                                width: 30, 
-                                child: Text("${setIndex + 1}", style: const TextStyle(fontWeight: FontWeight.bold))
+                              if (previousText != null) 
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 30, bottom: 4),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      // Auto-fill
+                                      setState(() {
+                                        if (exercise.trackingType == TrackingType.weightAndReps) {
+                                          set.weightCtrl.text = set.previousWeight?.toString() ?? '';
+                                          set.repsCtrl.text = set.previousReps?.toString() ?? '';
+                                        } else {
+                                          set.timeCtrl.text = set.previousTime?.toString() ?? '';
+                                          set.distanceCtrl.text = set.previousDistance?.toString() ?? '';
+                                        }
+                                      });
+                                    },
+                                    child: Text(previousText, style: TextStyle(fontSize: 10, color: Colors.blue.shade300, fontStyle: FontStyle.italic)),
+                                  ),
+                                ),
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    width: 30, 
+                                    child: Text("${setIndex + 1}", style: const TextStyle(fontWeight: FontWeight.bold))
+                                  ),
+                                  if (exercise.trackingType == TrackingType.weightAndReps) ...[
+                                    Expanded(child: _buildNumberInput(set.weightCtrl, "Weight")),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: _buildNumberInput(set.repsCtrl, "Reps")),
+                                  ] else ...[
+                                    Expanded(child: _buildNumberInput(set.timeCtrl, "Time")),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: _buildNumberInput(set.distanceCtrl, "Dist")),
+                                  ],
+                                  IconButton(
+                                    icon: const Icon(Icons.remove_circle_outline, color: Colors.grey),
+                                    onPressed: () => _removeSet(exIndex, setIndex),
+                                  )
+                                ],
                               ),
-                              Expanded(
-                                child: _buildNumberInput(set.weightCtrl, "Weight"),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildNumberInput(set.repsCtrl, "Reps"),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle_outline, color: Colors.grey),
-                                onPressed: () => _removeSet(exIndex, setIndex),
-                              )
                             ],
                           ),
                         );
@@ -313,7 +770,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 side: const BorderSide(color: Colors.black, width: 1.5),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 100), // extra padding for FAB
           ],
         ),
       ),
@@ -329,7 +786,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       ),
       child: TextFormField(
         controller: controller,
-        keyboardType: TextInputType.number,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.center,
         decoration: InputDecoration(
           hintText: hint,
