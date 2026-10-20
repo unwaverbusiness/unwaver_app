@@ -462,7 +462,7 @@ class PostCard extends StatelessWidget {
   }
 
   void _sharePost() {
-    Share.share('Check out this post on Unwaver:\n\n${postDoc['content']}');
+    SharePlus.instance.share(ShareParams(text: 'Check out this post on Unwaver:\n\n${postDoc['content']}'));
   }
 
   Future<void> _showEditDialog(BuildContext context) async {
