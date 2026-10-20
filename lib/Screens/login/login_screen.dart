@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -70,26 +71,36 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // --- SOCIAL SIGN IN LOGIC ---
+  static bool _isGoogleSignInInitialized = false;
+
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (_isGoogleSignInInitialized) return;
+    const String webClientId = '693008491248-hv2v2klc8lc8i06uc2ok0jb68r6iqr9g.apps.googleusercontent.com';
+    await GoogleSignIn.instance.initialize(
+      clientId: kIsWeb ? webClientId : null,
+      serverClientId: kIsWeb ? null : webClientId,
+    );
+    _isGoogleSignInInitialized = true;
+  }
+
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
     try {
-      // Note: For Web, a clientId is required. Replace this placeholder with your actual Web Client ID from Google Cloud Console.
-      final GoogleSignInAccount? googleUser = await GoogleSignIn(
-        clientId: '693008491248-hv2v2klc8lc8i06uc2ok0jb68r6iqr9g.apps.googleusercontent.com',
-      ).signIn();
+      if (kIsWeb) {
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.setCustomParameters({'prompt': 'select_account'});
+        await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        await _ensureGoogleSignInInitialized();
+        final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
 
-      if (googleUser == null) {
-        // User canceled the sign-in flow
-        return;
+        final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+
+        await FirebaseAuth.instance.signInWithCredential(credential);
       }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
 
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);

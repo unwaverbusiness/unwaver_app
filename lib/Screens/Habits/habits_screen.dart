@@ -685,7 +685,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
                               // Management Actions
                               onShareTap: () {
-                                Share.share('Join me on Unwaver and let\'s collaborate on my item: $title! 🚀');
+                                SharePlus.instance.share(ShareParams(text: 'Join me on Unwaver and let\'s collaborate on my item: $title! 🚀'));
                               },
                               onEdit: () {
                                 if (!isNativeSync && originalDoc != null) {

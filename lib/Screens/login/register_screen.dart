@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart'; // Needed for Autofill completion
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:unwaver/screens/login/login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -77,8 +79,60 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  // --- GOOGLE SIGN IN LOGIC ---
+  static bool _isGoogleSignInInitialized = false;
+
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (_isGoogleSignInInitialized) return;
+    const String webClientId = '693008491248-hv2v2klc8lc8i06uc2ok0jb68r6iqr9g.apps.googleusercontent.com';
+    await GoogleSignIn.instance.initialize(
+      clientId: kIsWeb ? webClientId : null,
+      serverClientId: kIsWeb ? null : webClientId,
+    );
+    _isGoogleSignInInitialized = true;
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      if (kIsWeb) {
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.setCustomParameters({'prompt': 'select_account'});
+        await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        await _ensureGoogleSignInInitialized();
+        final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
+
+        final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Google sign in failed: $e"),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   // Social Placeholders
   void _handleSocialSignIn(String provider) {
+    if (provider == "Google") {
+      _handleGoogleSignIn();
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Connecting to $provider..."), behavior: SnackBarBehavior.floating),
     );

@@ -113,10 +113,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         final bool didAuthenticate = await _localAuth.authenticate(
           localizedReason: 'Authenticate to enable biometric login for Unwaver',
-          options: const AuthenticationOptions(
-            biometricOnly: true,
-            stickyAuth: true,
-          ),
+          biometricOnly: true,
+          persistAcrossBackgrounding: true,
         );
 
         if (didAuthenticate && mounted) {
@@ -553,7 +551,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   
                   // Clear Google session if they used Google Sign-In
                   try {
-                    await GoogleSignIn().signOut().timeout(const Duration(seconds: 2));
+                    await GoogleSignIn.instance.signOut().timeout(const Duration(seconds: 2));
                   } catch (_) {}
                   
                   // Sign out of Firebase Auth

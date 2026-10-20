@@ -470,7 +470,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         await Provider.of<AppDataService>(context, listen: false).syncToFirebase().timeout(const Duration(seconds: 2));
                       } catch (_) {}
                       try {
-                        await GoogleSignIn().signOut().timeout(const Duration(seconds: 2));
+                        await GoogleSignIn.instance.signOut().timeout(const Duration(seconds: 2));
                       } catch (_) {}
                       try {
                         await FirebaseAuth.instance.signOut().timeout(const Duration(seconds: 2));
@@ -496,7 +496,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         await Provider.of<AppDataService>(context, listen: false).syncToFirebase().timeout(const Duration(seconds: 2));
                       } catch (_) {}
                       try {
-                        await GoogleSignIn().signOut().timeout(const Duration(seconds: 2));
+                        await GoogleSignIn.instance.signOut().timeout(const Duration(seconds: 2));
                       } catch (_) {}
                       try {
                         await FirebaseAuth.instance.signOut().timeout(const Duration(seconds: 2));
